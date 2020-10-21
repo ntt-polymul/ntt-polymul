@@ -66,9 +66,10 @@ void owcpa_keypair(unsigned char *pk,
     poly_S3_tobytes(sk, f);
     poly_S3_tobytes(sk + NTRU_PACK_TRINARY_BYTES, invf_mod3);
 
-    /* Lift coeffs of f and g from Z_p to Z_q */
-    //poly_Z3_to_Zq(f);
+    /* Lift coeffs of f from Z_p to signed Z_p */
     poly_Z3_to_SignedZ3(f);
+
+    /* Lift coeffs of g from Z_p to Z_q */
     poly_Z3_to_Zq(g);
 
     /* G = 3*g */
@@ -77,14 +78,11 @@ void owcpa_keypair(unsigned char *pk,
     }
 
     poly_SignedZ3_Rq_mul(Gf, f, G);
-    //poly_Rq_mul(Gf, G, f);
 
     poly_Rq_inv(invGf, Gf);
 
     poly_SignedZ3_Rq_mul(tmp, f, invGf);
-    //poly_Rq_mul(tmp, invGf, f);
     poly_SignedZ3_Sq_mul(invh, f, tmp);
-    //poly_Sq_mul(invh, tmp, f);
     poly_Sq_tobytes(sk + 2 * NTRU_PACK_TRINARY_BYTES, invh);
 
     poly_Rq_mul(tmp, invGf, G);
@@ -105,11 +103,9 @@ void owcpa_enc(unsigned char *c,
     poly_Rq_sum_zero_frombytes(h, pk);
 
     poly_S3_frombytes(r, rm);
-    //poly_Z3_to_Zq(r);
     poly_Z3_to_SignedZ3(r);
 
     poly_SignedZ3_Rq_mul(ct, r, h);
-    //poly_Rq_mul(ct, r, h);
 
     poly_S3_frombytes(m, rm + NTRU_PACK_TRINARY_BYTES);
     poly_lift(liftm, m);
@@ -134,11 +130,9 @@ int owcpa_dec(unsigned char *rm,
 
     poly_Rq_sum_zero_frombytes(c, ciphertext);
     poly_S3_frombytes(f, secretkey);
-    //poly_Z3_to_Zq(f);
     poly_Z3_to_SignedZ3(f);
 
     poly_SignedZ3_Rq_mul(cf, f, c);
-    //poly_Rq_mul(cf, c, f);
     poly_Rq_to_S3(mf, cf);
 
     poly_S3_frombytes(finv3, secretkey + NTRU_PACK_TRINARY_BYTES);
