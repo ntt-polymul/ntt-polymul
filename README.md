@@ -5,8 +5,8 @@ Authors:
   - Vincent Hwang `<vincentvbh7@gmail.com>`
   - [Matthias J. Kannwischer](https://kannwischer.eu/) `<matthias@kannwischer.eu>`
   - Gregor Seiler `<gseiler@inf.ethz.ch>`
-  - Cheng-Jhih Shi `<cs861324@gmail.com>`
-  - [Bo-Yin Yang](https://www.iis.sinica.edu.tw/pages/byyang/) `<by@crypto.t>`
+  - Cheng-Jhih Shih `<cs861324@gmail.com>`
+  - [Bo-Yin Yang](https://www.iis.sinica.edu.tw/pages/byyang/) `<by@crypto.tw>`
 
 
 This repository contains our NTT-based implementations for Saber and NTRU for Cortex-M4 and AVX2.
