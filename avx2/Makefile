@@ -1,7 +1,7 @@
 CC ?= /usr/bin/cc
 CFLAGS += -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wredundant-decls \
   -Wshadow -Wpointer-arith -mavx2 -mbmi2 -mpopcnt -maes \
-  -march=native -mtune=native -O3 -fomit-frame-pointer
+  -march=native -mtune=native -O3 -fomit-frame-pointer -flto
 SABERFLAGS = -march=native -mtune=native -O3 -fomit-frame-pointer
 RM = /bin/rm
 
@@ -14,11 +14,11 @@ SOURCES1024 = $(SOURCES) ntt1024.S invntt1024.S basemul512x2.S consts1024.c cons
 SOURCES1536 = $(SOURCES) ntt1536.S invntt1536.S basemul512x3.S consts15367681.c consts153610753.c
 SOURCES1728 = $(SOURCES) ntt1728.S invntt1728.S basemul576x3.S consts17283457.c consts17288641.c
 OBJECTS = aes256ctr.o
-OBJECTS256NX2 = $(OBJECTS) ntt256n.o invntt256n.o basemul256x1x2.o consts256n7681.o consts256n10753.o
-OBJECTS256NX3 = $(OBJECTS) ntt256n.o invntt256n.o basemul256x1x3.o consts256n7681.o consts256n10753.o
-OBJECTS256NX4 = $(OBJECTS) ntt256n.o invntt256n.o basemul256x1x4.o consts256n7681.o consts256n10753.o
-OBJECTS512N = $(OBJECTS) ntt512n.o invntt512n.o basemul256x2.o consts512.o consts1024n7681.o consts1024n10753.o
-OBJECTS1024N = $(OBJECTS) ntt1024n.o invntt1024n.o basemul256x4.o consts1024.o consts1024n7681.o consts1024n10753.o
+OBJECTS256NX2 = $(OBJECTS) cbd256.o ntt256n.o invntt256n.o basemul256x1x2.o consts256n7681.o consts256n10753.o
+OBJECTS256NX3 = $(OBJECTS) cbd256.o ntt256n.o invntt256n.o basemul256x1x3.o consts256n7681.o consts256n10753.o
+OBJECTS256NX4 = $(OBJECTS) cbd256.o ntt256n.o invntt256n.o basemul256x1x4.o consts256n7681.o consts256n10753.o
+OBJECTS512N = $(OBJECTS) cbd512.o ntt512n.o invntt512n.o basemul256x2.o consts512.o consts512n7681.o consts512n10753.o
+OBJECTS1024N = $(OBJECTS) cbd1024.o ntt1024n.o invntt1024n.o basemul256x4.o consts1024.o consts1024n7681.o consts1024n10753.o
 OBJECTS1024 = $(OBJECTS) ntt1024.o invntt1024.o basemul512x2.o consts1024.o consts10247681.o consts102410753.o
 OBJECTS1536 = $(OBJECTS) ntt1536.o invntt1536.o basemul512x3.o consts15367681.o consts153610753.o
 OBJECTS1728 = $(OBJECTS) ntt1728.o invntt1728.o basemul576x3.o consts17283457.o consts17288641.o
@@ -29,13 +29,15 @@ all: \
   test_ntt256n \
   test_basemul256n \
   test_speed256nx2 \
-  test_range256n \
   test_speed256nx3 \
   test_speed256nx4 \
+  test_range256n \
   test_ntt512n \
   test_basemul512n \
+  test_speed512n \
   test_ntt1024n \
   test_basemul1024n \
+  test_speed1024n \
   test_ntt1024 \
   test_basemul1024 \
   test_speed1024 \
@@ -54,7 +56,9 @@ all: \
   test_ntruhps821mul \
   test_lightsabermul \
   test_sabermul \
-  test_firesabermul
+  test_firesabermul \
+  test_lac128mul \
+  test_lac192mul
 
 lib: \
   libntruhps509mul.a \
@@ -63,7 +67,9 @@ lib: \
   libntruhrss701mul.a \
   liblightsabermul.a \
   libsabermul.a \
-  libfiresabermul.a
+  libfiresabermul.a \
+  liblac128mul.a \
+  liblac192mul.a
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -146,16 +152,16 @@ basemul256x1x3.o: basemul256x1.S $(HEADERS)
 basemul256x1x4.o: basemul256x1.S $(HEADERS)
 	$(CC) -c $(CFLAGS) -DKEM_K=4 -c -o $@ $<
 
-libntruhps509mul.a: poly_ntruhps509.o $(OBJECTS1024)
+libntruhps509mul.a: poly_ntruhps509.o $(OBJECTS1024) cbd509.o
 	$(AR) -r $@ $^
 
-libntruhps677mul.a: poly_ntruhps677.o $(OBJECTS1536)
+libntruhps677mul.a: poly_ntruhps677.o $(OBJECTS1536) cbd677.o
 	$(AR) -r $@ $^
 
-libntruhrss701mul.a: poly_ntruhrss701.o $(OBJECTS1536)
+libntruhrss701mul.a: poly_ntruhrss701.o $(OBJECTS1536) cbd701.o
 	$(AR) -r $@ $^
 
-libntruhps821mul.a: poly_ntruhps821.o $(OBJECTS1728)
+libntruhps821mul.a: poly_ntruhps821.o $(OBJECTS1728) cbd821.o
 	$(AR) -r $@ $^
 
 liblightsabermul.a: poly_lightsaber.o polyvec_lightsaber.o $(OBJECTS256NX2)
@@ -164,7 +170,7 @@ liblightsabermul.a: poly_lightsaber.o polyvec_lightsaber.o $(OBJECTS256NX2)
 libsabermul.a: poly_saber.o polyvec_saber.o $(OBJECTS256NX3)
 	$(AR) -r $@ $^
 
-libfiresabermul.a: poly_firesaber.o polyvec_firesaber.o $(OBJECTS256NX3)
+libfiresabermul.a: poly_firesaber.o polyvec_firesaber.o $(OBJECTS256NX4)
 	$(AR) -r $@ $^
 
 liblac128mul.a: poly_lac128.o $(OBJECTS512N)
@@ -229,6 +235,12 @@ test_sabermul: $(SOURCES256N) $(HEADERS) test_polyvecmul.c polyvec.c sabermul/sa
 test_firesabermul: $(SOURCES256N) $(HEADERS) test_polyvecmul.c polyvec.c sabermul/firesabermul.o
 	$(CC) $(CFLAGS) $(SOURCES256N) -DFIRESABER test_polyvecmul.c polyvec.c sabermul/firesabermul.o -o $@
 
+test_lac128mul: $(SOURCES512N) $(HEADERS) test_polymul.c lacmul/lacmul.c
+	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_polymul.c lacmul/lacmul.c -o $@
+
+test_lac192mul: $(SOURCES1024N) $(HEADERS) test_polymul.c lacmul/lacmul.c
+	$(CC) $(CFLAGS) $(SOURCES1024N) -DLAC192 test_polymul.c lacmul/lacmul.c -o $@
+
 test_speed256nx2: $(SOURCES256N) $(HEADERS) test_speed.c polyvec.c sabermul/lightsabermul.o cpucycles.c cpucycles.h speed_print.c speed_print.h
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_speed.c polyvec.c sabermul/lightsabermul.o cpucycles.c speed_print.c -o $@
 
@@ -238,11 +250,11 @@ test_speed256nx3: $(SOURCES256N) $(HEADERS) test_speed.c polyvec.c sabermul/sabe
 test_speed256nx4: $(SOURCES256N) $(HEADERS) test_speed.c polyvec.c sabermul/firesabermul.o cpucycles.c cpucycles.h speed_print.c speed_print.h
 	$(CC) $(CFLAGS) $(SOURCES256N) -DFIRESABER test_speed.c polyvec.c sabermul/firesabermul.o cpucycles.c speed_print.c -o $@
 
-test_speed512n: $(SOURCES512N) $(HEADERS) test_speed.c cpucycles.c cpucycles.h speed_print.c speed_print.h
-	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_speed.c cpucycles.c speed_print.c -o $@
+test_speed512n: $(SOURCES512N) $(HEADERS) test_speed.c lacmul/lacmul.c cpucycles.c cpucycles.h speed_print.c speed_print.h
+	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_speed.c lacmul/lacmul.c cpucycles.c speed_print.c -o $@
 
-test_speed1024n: $(SOURCES1024N) $(HEADERS) test_speed.c cpucycles.c cpucycles.h speed_print.c speed_print.h
-	$(CC) $(CFLAGS) $(SOURCES1024N) -DLAC192 test_speed.c cpucycles.c speed_print.c -o $@
+test_speed1024n: $(SOURCES1024N) $(HEADERS) test_speed.c lacmul/lacmul.c cpucycles.c cpucycles.h speed_print.c speed_print.h
+	$(CC) $(CFLAGS) $(SOURCES1024N) -DLAC192 test_speed.c lacmul/lacmul.c cpucycles.c speed_print.c -o $@
 
 test_speed1024: $(SOURCES1024) $(HEADERS) test_speed.c ntrumul/ntruhps509_poly_mul.s cpucycles.c cpucycles.h speed_print.c speed_print.h
 	$(CC) $(CFLAGS) $(SOURCES1024) -DNTRUHPS509 test_speed.c ntrumul/ntruhps509_poly_mul.s cpucycles.c speed_print.c -o $@
@@ -307,3 +319,5 @@ clean:
 	-$(RM) -f test_lightsabermul
 	-$(RM) -f test_sabermul
 	-$(RM) -f test_firesabermul
+	-$(RM) -f test_lac128mul
+	-$(RM) -f test_lac192mul

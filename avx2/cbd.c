@@ -3,7 +3,7 @@
 #include "params.h"
 #include "cbd.h"
 
-void cbd(poly * restrict r, const uint8_t * restrict buf)
+void cbd(int16_t * restrict r, const uint8_t * restrict buf)
 {
   unsigned int i;
   __m256i f0, f1;
@@ -32,7 +32,7 @@ void cbd(poly * restrict r, const uint8_t * restrict buf)
     f0 = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(f1));
     f1 = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(f1,1));
 
-    _mm256_store_si256((__m256i *)&r->coeffs[32*i+0], f0);
-    _mm256_store_si256((__m256i *)&r->coeffs[32*i+16], f1);
+    _mm256_store_si256((__m256i *)&r[32*i+0], f0);
+    _mm256_store_si256((__m256i *)&r[32*i+16], f1);
   }
 }

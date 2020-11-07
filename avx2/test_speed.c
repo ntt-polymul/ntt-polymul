@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "params.h"
 #include "randombytes.h"
 #include "cpucycles.h"
@@ -14,6 +15,9 @@ int main(void) {
   uint64_t tsc[100];
   poly a, b, c;
   nttpoly ahat, bhat, chat;
+
+  memset(&a,0,sizeof(poly));
+  memset(&b,0,sizeof(poly));
 
 #ifdef KEM_K
   polyvec mat[KEM_K];
@@ -32,7 +36,7 @@ int main(void) {
 #else
   for(k=0;k<100;k++) {
     tsc[k] = cpucycles();
-    ntru_poly_mul(&c,&a,&b);
+    orig_poly_mul(&c,&a,&b);
   }
   print_results("ntru_poly_mul:",tsc,100);
 #endif

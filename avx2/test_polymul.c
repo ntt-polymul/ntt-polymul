@@ -12,8 +12,13 @@ static void poly_naivemul(poly *c, const poly *a, const poly *b) {
     for(j = 0; j < KEM_N; ++j)
       t[i+j] = (t[i+j] + (int32_t)a->coeffs[i]*b->coeffs[j]) % KEM_Q;
 
+#ifdef NEGACYCLIC
+  for(i = KEM_N; i < 2*KEM_N; i++)
+    c->coeffs[i - KEM_N] = (t[i - KEM_N] - t[i]) % KEM_Q;
+#else
   for(i = KEM_N; i < 2*KEM_N; i++)
     c->coeffs[i - KEM_N] = (t[i - KEM_N] + t[i]) % KEM_Q;
+#endif
 }
 
 int main(void) {
@@ -28,10 +33,10 @@ int main(void) {
   poly_noise(&b,seed,nonce++);
 
   poly_naivemul(&c,&a,&b);
-  ntru_poly_mul(&d,&a,&b);
+  orig_poly_mul(&d,&a,&b);
   for(i=0;i<KEM_N;i++)
     if((c.coeffs[i] - d.coeffs[i]) % KEM_Q)
-      printf("ERROR1: %d\n", i);
+      printf("ERROR1: %d, %d, %d\n", i, c.coeffs[i], d.coeffs[i]);
 
   poly_ntt(&ahat,&a,PDATA0);
   poly_ntt(&bhat,&b,PDATA0);

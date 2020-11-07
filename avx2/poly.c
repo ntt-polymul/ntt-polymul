@@ -58,7 +58,7 @@ void poly_noise(poly *r, const uint8_t seed[POLYMUL_SYMBYTES], uint16_t nonce) {
   __attribute__((aligned(32)))
   uint8_t buf[(KEM_N+31)/32*32];
   aes256ctr_prf(buf, sizeof(buf), seed, nonce);
-  cbd(r, buf);
+  cbd(r->coeffs, buf);
   for(i=KEM_N;i<POLY_N;i++)
     r->coeffs[i] = 0;
 }
@@ -178,15 +178,15 @@ void poly_mul(poly *r, const poly *a, const poly *b) {
   nttpoly ahat, bhat, chat;
   const __m256i mod = _mm256_set1_epi16(KEM_Q-1);
   const __m256i q = _mm256_set1_epi16(KEM_Q);
-  const __m256i hq = _mm256_set1_epi16(KEM_Q/2);
+  const __m256i hq = _mm256_set1_epi16(KEM_Q/2-1);
   __m256i f, g, t, u;
 
 #if 0
-  for(int k=0;k<(KEM_N+15)/16;k++)
+  for(int k=0;k<KEM_N;k++)
     assert(a->coeffs[k] < KEM_Q/2 && a->coeffs[k] >= -KEM_Q/2);
 
-  for(int k=0;k<(KEM_N+15)/16;k++)
-    assert(b->coeffs[k] <= 4  && b->coeffs[k] >= -4);
+  for(int k=0;k<KEM_N;k++)
+    assert(b->coeffs[k] <= 6  && b->coeffs[k] >= -6);
 #endif
 
   for(i=0;i<(KEM_N+15)/16;i++) {
@@ -211,6 +211,9 @@ void poly_mul(poly *r, const poly *a, const poly *b) {
     i += 1;
   }
 
+  for(i=KEM_N;i<(KEM_N+15)/16*16;i++)
+    a2.coeffs[i] = b2.coeffs[i] = 0;
+
   poly_ntt(&ahat,&a2,PDATA0);
   poly_ntt(&bhat,&b2,PDATA0);
   poly_basemul_montgomery(&ahat,&ahat,&bhat,PDATA0);
@@ -221,3 +224,44 @@ void poly_mul(poly *r, const poly *a, const poly *b) {
   poly_invntt_tomont(&bhat,&bhat,PDATA1);
   poly_crt(r,&ahat,&bhat);
 }
+
+#if defined(LAC128) || defined(LAC192)
+void polysmall_mul(uint8_t *r, const uint8_t *a, const int8_t *b) {
+  unsigned int i;
+  poly a2, b2;
+  nttpoly ahat, bhat, chat;
+  __m256i f, g;
+
+  for(i=0;i<KEM_N/16;i++) {
+    f = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i *)&a[16*i]));
+    g = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i *)&b[16*i]));
+    _mm256_store_si256((__m256i *)&a2.coeffs[16*i],f);
+    _mm256_store_si256((__m256i *)&b2.coeffs[16*i],g);
+  }
+
+  f = _mm256_setzero_si256();
+  while(i < POLY_N/16) {
+    _mm256_store_si256((__m256i *)&a2.coeffs[16*i],f);
+    _mm256_store_si256((__m256i *)&b2.coeffs[16*i],f);
+    i += 1;
+  }
+
+  poly_ntt(&ahat,&a2,PDATA0);
+  poly_ntt(&bhat,&b2,PDATA0);
+  poly_basemul_montgomery(&ahat,&ahat,&bhat,PDATA0);
+  poly_invntt_tomont(&ahat,&ahat,PDATA0);
+  poly_ntt(&bhat,&a2,PDATA1);
+  poly_ntt(&chat,&b2,PDATA1);
+  poly_basemul_montgomery(&bhat,&bhat,&chat,PDATA1);
+  poly_invntt_tomont(&bhat,&bhat,PDATA1);
+  poly_crt(&a2,&ahat,&bhat);
+
+  for(i=0;i<KEM_N/32;i++) {
+    f = _mm256_load_si256((__m256i *)&a2.coeffs[32*i+ 0]);
+    g = _mm256_load_si256((__m256i *)&a2.coeffs[32*i+16]);
+    f = _mm256_packus_epi16(f,g);
+    f = _mm256_permute4x64_epi64(f,0xD8);
+    _mm256_storeu_si256((__m256i *)&r[32*i],f);
+  }
+}
+#endif

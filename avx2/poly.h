@@ -35,19 +35,24 @@ void poly_add(poly *r, const poly *a, const poly *b);
 void poly_sub(poly *r, const poly *a, const poly *b);
 #define poly_mul POLYMUL_NAMESPACE(_poly_mul)
 void poly_mul(poly *r, const poly *a, const poly *b);
+#define polysmall_mul POLYMUL_NAMESPACE(_polysmall_mul)
+void polysmall_mul(uint8_t *r, const uint8_t *a, const int8_t *b);
 
 #if defined(NTRUHRSS701)
-#define ntru_poly_mul ntruhrss701_poly_mul
+#define orig_poly_mul ntruhrss701_poly_mul
 #elif defined(NTRUHPS509)
-#define ntru_poly_mul ntruhps509_poly_mul
+#define orig_poly_mul ntruhps509_poly_mul
 #elif defined(NTRUHPS677)
-#define ntru_poly_mul ntruhps677_poly_mul
+#define orig_poly_mul ntruhps677_poly_mul
 #elif defined(NTRUHPS821)
-#define ntru_poly_mul ntruhps821_poly_mul
+#define orig_poly_mul ntruhps821_poly_mul
+#elif defined(LAC128) || defined(LAC192)
+#define orig_poly_mul lac_poly_mul
 #endif
 void ntruhrss701_poly_mul(poly *r, const poly *a, const poly *b);
 void ntruhps509_poly_mul(poly *r, const poly *a, const poly *b);
 void ntruhps677_poly_mul(poly *r, const poly *a, const poly *b);
 void ntruhps821_poly_mul(poly *r, const poly *a, const poly *b);
+void lac_poly_mul(poly *r, const poly *a, const poly *b);
 
 #endif

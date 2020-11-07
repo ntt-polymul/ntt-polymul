@@ -7,7 +7,7 @@
 #define MONT -3593 // 2^16 mod p
 #define MONT_PINV -9
 #define V 17474 // floor(2^27/p + 0.5)
-#define SHIFT 2048
+#define SHIFT 16
 #define F 956 // mont^2/512
 #define F_PINV -1092 // pinv*FHI
 
