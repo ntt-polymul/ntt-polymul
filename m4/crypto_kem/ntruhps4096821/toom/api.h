@@ -1,6 +1,7 @@
 #ifndef API_H
 #define API_H
 
+#include "params.h"
 #include <stdint.h>
 
 #define CRYPTO_SECRETKEYBYTES 1590

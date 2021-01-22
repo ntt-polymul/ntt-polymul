@@ -1,139 +1,4 @@
-% Benchmarking measurements written on 2020-10-12 12:28:58.504358+00:00; iterations=100
-
-% M4 results for lightsaber
-\newcommand{\lightsaberccakeygen}{360k}
-\newcommand{\lightsaberencaps}{513k}
-\newcommand{\lightsaberdecaps}{498k}
-\newcommand{\lightsabercpakeygen}{294k}
-\newcommand{\lightsabercpaenc}{330k}
-\newcommand{\lightsabercpadec}{58k}
-\newcommand{\lightsabermatrixvector}{66k}
-\newcommand{\lightsaberinnerprod}{41k}
-
-% M4 results for saber
-\newcommand{\saberccakeygen}{658k}
-\newcommand{\saberencaps}{864k}
-\newcommand{\saberdecaps}{835k}
-\newcommand{\sabercpakeygen}{554k}
-\newcommand{\sabercpaenc}{606k}
-\newcommand{\sabercpadec}{79k}
-\newcommand{\sabermatrixvector}{125k}
-\newcommand{\saberinnerprod}{57k}
-
-% M4 results for firesaber
-\newcommand{\firesaberccakeygen}{1\,008k}
-\newcommand{\firesaberencaps}{1\,255k}
-\newcommand{\firesaberdecaps}{1\,227k}
-\newcommand{\firesabercpakeygen}{879k}
-\newcommand{\firesabercpaenc}{947k}
-\newcommand{\firesabercpadec}{101k}
-\newcommand{\firesabermatrixvector}{205k}
-\newcommand{\firesaberinnerprod}{73k}
-
-% M4 results for ntruhrss701
-\newcommand{\ntruhrssccakeygen}{154\,403k}
-\newcommand{\ntruhrssencaps}{377k}
-\newcommand{\ntruhrssdecaps}{871k}
-\newcommand{\ntruhrsscpakeygen}{154\,377k}
-\newcommand{\ntruhrsscpaenc}{274k}
-\newcommand{\ntruhrsscpadec}{716k}
-\newcommand{\ntruhrsspolymul}{156k}
-
-% M4 results for ntruhps2048509
-\newcommand{\ntruhpsIccakeygen}{79\,660k}
-\newcommand{\ntruhpsIencaps}{564k}
-\newcommand{\ntruhpsIdecaps}{538k}
-\newcommand{\ntruhpsIcpakeygen}{79\,617k}
-\newcommand{\ntruhpsIcpaenc}{152k}
-\newcommand{\ntruhpsIcpadec}{434k}
-\newcommand{\ntruhpsIpolymul}{101k}
-
-% M4 results for ntruhps2048677
-\newcommand{\ntruhpsIIIccakeygen}{143\,725k}
-\newcommand{\ntruhpsIIIencaps}{821k}
-\newcommand{\ntruhpsIIIdecaps}{818k}
-\newcommand{\ntruhpsIIIcpakeygen}{143\,671k}
-\newcommand{\ntruhpsIIIcpaenc}{224k}
-\newcommand{\ntruhpsIIIcpadec}{676k}
-\newcommand{\ntruhpsIIIpolymul}{156k}
-
-% M4 results for ntruhps4096821
-\newcommand{\ntruhpsVccakeygen}{207\,495k}
-\newcommand{\ntruhpsVencaps}{1\,027k}
-\newcommand{\ntruhpsVdecaps}{1\,030k}
-\newcommand{\ntruhpsVcpakeygen}{208\,771k}
-\newcommand{\ntruhpsVcpaenc}{285k}
-\newcommand{\ntruhpsVcpadec}{862k}
-\newcommand{\ntruhpsVpolymul}{199k}
-% Benchmarking measurements written on 2020-10-13 06:20:05.162859+00:00; iterations=100
-
-% Benchmarking old toom4 implementations from pqm4 to obtain CPA cycle counts
-% M4 results for ntruhrss701 (impl=toom)
-\newcommand{\ntruhrsstoomccakeygen}{154\,477k}
-\newcommand{\ntruhrsstoomencaps}{403k}
-\newcommand{\ntruhrsstoomdecaps}{896k}
-\newcommand{\ntruhrsstoomcpakeygen}{153\,794k}
-\newcommand{\ntruhrsstoomcpaenc}{299k}
-\newcommand{\ntruhrsstoomcpadec}{740k}
-
-% M4 results for ntruhps2048509 (impl=toom)
-\newcommand{\ntruhpsItoomccakeygen}{79\,682k}
-\newcommand{\ntruhpsItoomencaps}{572k}
-\newcommand{\ntruhpsItoomdecaps}{545k}
-\newcommand{\ntruhpsItoomcpakeygen}{79\,639k}
-\newcommand{\ntruhpsItoomcpaenc}{160k}
-\newcommand{\ntruhpsItoomcpadec}{441k}
-
-% M4 results for ntruhps2048677 (impl=toom)
-\newcommand{\ntruhpsIIItoomccakeygen}{143\,808k}
-\newcommand{\ntruhpsIIItoomencaps}{849k}
-\newcommand{\ntruhpsIIItoomdecaps}{845k}
-\newcommand{\ntruhpsIIItoomcpakeygen}{143\,759k}
-\newcommand{\ntruhpsIIItoomcpaenc}{251k}
-\newcommand{\ntruhpsIIItoomcpadec}{702k}
-
-% M4 results for ntruhps4096821 (impl=toom)
-\newcommand{\ntruhpsVtoomccakeygen}{208\,953k}
-\newcommand{\ntruhpsVtoomencaps}{1\,069k}
-\newcommand{\ntruhpsVtoomdecaps}{1\,075k}
-\newcommand{\ntruhpsVtoomcpakeygen}{208\,892k}
-\newcommand{\ntruhpsVtoomcpaenc}{327k}
-\newcommand{\ntruhpsVtoomcpadec}{906k}
-
-
-% Benchmarking measurements written on 2020-10-13 09:25:26.623675+00:00; iterations=100
-
-% Benchmarking old toom4 implementations from pqm4 to obtain CPA cycle counts
-% M4 results for lightsaber (impl=toom)
-\newcommand{\lightsabertoomccakeygen}{449k}
-\newcommand{\lightsabertoomencaps}{630k}
-\newcommand{\lightsabertoomdecaps}{651k}
-\newcommand{\lightsabertoomcpakeygen}{383k}
-\newcommand{\lightsabertoomcpaenc}{448k}
-\newcommand{\lightsabertoomcpadec}{93k}
-\newcommand{\lightsabertoommatrixvector}{149k}
-\newcommand{\lightsabertoominnerprod}{73k}
-
-% M4 results for saber (impl=toom)
-\newcommand{\sabertoomccakeygen}{842k}
-\newcommand{\sabertoomencaps}{1\,087k}
-\newcommand{\sabertoomdecaps}{1\,110k}
-\newcommand{\sabertoomcpakeygen}{738k}
-\newcommand{\sabertoomcpaenc}{830k}
-\newcommand{\sabertoomcpadec}{128k}
-\newcommand{\sabertoommatrixvector}{300k}
-\newcommand{\sabertoominnerprod}{99k}
-
-% M4 results for firesaber (impl=toom)
-\newcommand{\firesabertoomccakeygen}{1\,321k}
-\newcommand{\firesabertoomencaps}{1\,621k}
-\newcommand{\firesabertoomdecaps}{1\,655k}
-\newcommand{\firesabertoomcpakeygen}{1\,191k}
-\newcommand{\firesabertoomcpaenc}{1\,312k}
-\newcommand{\firesabertoomcpadec}{162k}
-\newcommand{\firesabertoommatrixvector}{508k}
-\newcommand{\firesabertoominnerprod}{126k}
-% Benchmarking measurements written on 2020-10-20 09:43:25.337855+00:00; iterations=100
+% Benchmarking measurements written on 2021-01-22 06:31:36.057127+00:00; iterations=100
 
 % M4 results for lightsaber (impl=m4)
 \newcommand{\lightsaberccakeygen}{360k}
@@ -191,4 +56,130 @@
 \newcommand{\ntruhpsIIIcpaenc}{224k}
 \newcommand{\ntruhpsIIIcpadec}{676k}
 \newcommand{\ntruhpsIIIpolymul}{156k}
+
+% M4 results for ntruhps4096821 (impl=m4)
+\newcommand{\ntruhpsVccakeygen}{207\,496k}
+\newcommand{\ntruhpsVencaps}{1\,028k}
+\newcommand{\ntruhpsVdecaps}{1\,030k}
+\newcommand{\ntruhpsVcpakeygen}{208\,772k}
+\newcommand{\ntruhpsVcpaenc}{285k}
+\newcommand{\ntruhpsVcpadec}{862k}
+\newcommand{\ntruhpsVpolymul}{199k}
+
+% M4 results for lac-128-v3a (impl=m4)
+\newcommand{\lacIccakeygen}{282k}
+\newcommand{\lacIencaps}{450k}
+\newcommand{\lacIdecaps}{565k}
+\newcommand{\lacIcpakeygen}{282k}
+\newcommand{\lacIcpaenc}{444k}
+\newcommand{\lacIcpadec}{113k}
+\newcommand{\lacIpolymul}{65k}
+
+% M4 results for lac-192-v3a (impl=m4)
+\newcommand{\lacIIIccakeygen}{373k}
+\newcommand{\lacIIIencaps}{610k}
+\newcommand{\lacIIIdecaps}{824k}
+\newcommand{\lacIIIcpakeygen}{373k}
+\newcommand{\lacIIIcpaenc}{601k}
+\newcommand{\lacIIIcpadec}{210k}
+\newcommand{\lacIIIpolymul}{131k}
+
+% M4 results for lac-256-v3a (impl=m4)
+\newcommand{\lacVccakeygen}{459k}
+\newcommand{\lacVencaps}{748k}
+\newcommand{\lacVdecaps}{1\,111k}
+\newcommand{\lacVcpakeygen}{459k}
+\newcommand{\lacVcpaenc}{739k}
+\newcommand{\lacVcpadec}{359k}
+\newcommand{\lacVpolymul}{132k}
+
+% Benchmarking old toom4 implementations from pqm4 to obtain CPA cycle counts
+% M4 results for lightsaber (impl=toom)
+\newcommand{\lightsabertoomccakeygen}{449k}
+\newcommand{\lightsabertoomencaps}{630k}
+\newcommand{\lightsabertoomdecaps}{651k}
+\newcommand{\lightsabertoomcpakeygen}{383k}
+\newcommand{\lightsabertoomcpaenc}{448k}
+\newcommand{\lightsabertoomcpadec}{93k}
+\newcommand{\lightsabertoommatrixvector}{149k}
+\newcommand{\lightsabertoominnerprod}{73k}
+
+% M4 results for saber (impl=toom)
+\newcommand{\sabertoomccakeygen}{842k}
+\newcommand{\sabertoomencaps}{1\,087k}
+\newcommand{\sabertoomdecaps}{1\,110k}
+\newcommand{\sabertoomcpakeygen}{738k}
+\newcommand{\sabertoomcpaenc}{830k}
+\newcommand{\sabertoomcpadec}{128k}
+\newcommand{\sabertoommatrixvector}{300k}
+\newcommand{\sabertoominnerprod}{99k}
+
+% M4 results for firesaber (impl=toom)
+\newcommand{\firesabertoomccakeygen}{1\,321k}
+\newcommand{\firesabertoomencaps}{1\,621k}
+\newcommand{\firesabertoomdecaps}{1\,655k}
+\newcommand{\firesabertoomcpakeygen}{1\,191k}
+\newcommand{\firesabertoomcpaenc}{1\,312k}
+\newcommand{\firesabertoomcpadec}{162k}
+\newcommand{\firesabertoommatrixvector}{508k}
+\newcommand{\firesabertoominnerprod}{126k}
+
+% M4 results for ntruhrss701 (impl=toom)
+\newcommand{\ntruhrsstoomccakeygen}{154\,477k}
+\newcommand{\ntruhrsstoomencaps}{403k}
+\newcommand{\ntruhrsstoomdecaps}{896k}
+\newcommand{\ntruhrsstoomcpakeygen}{153\,794k}
+\newcommand{\ntruhrsstoomcpaenc}{299k}
+\newcommand{\ntruhrsstoomcpadec}{740k}
+
+% M4 results for ntruhps2048509 (impl=toom)
+\newcommand{\ntruhpsItoomccakeygen}{79\,682k}
+\newcommand{\ntruhpsItoomencaps}{572k}
+\newcommand{\ntruhpsItoomdecaps}{545k}
+\newcommand{\ntruhpsItoomcpakeygen}{79\,639k}
+\newcommand{\ntruhpsItoomcpaenc}{160k}
+\newcommand{\ntruhpsItoomcpadec}{441k}
+
+% M4 results for ntruhps2048677 (impl=toom)
+\newcommand{\ntruhpsIIItoomccakeygen}{143\,808k}
+\newcommand{\ntruhpsIIItoomencaps}{849k}
+\newcommand{\ntruhpsIIItoomdecaps}{845k}
+\newcommand{\ntruhpsIIItoomcpakeygen}{143\,759k}
+\newcommand{\ntruhpsIIItoomcpaenc}{251k}
+\newcommand{\ntruhpsIIItoomcpadec}{702k}
+
+% M4 results for ntruhps4096821 (impl=toom)
+\newcommand{\ntruhpsVtoomccakeygen}{208\,953k}
+\newcommand{\ntruhpsVtoomencaps}{1\,069k}
+\newcommand{\ntruhpsVtoomdecaps}{1\,075k}
+\newcommand{\ntruhpsVtoomcpakeygen}{208\,892k}
+\newcommand{\ntruhpsVtoomcpaenc}{327k}
+\newcommand{\ntruhpsVtoomcpadec}{906k}
+
+% M4 results for lac-128-v3a (impl=old)
+\newcommand{\lacIoldccakeygen}{851k}
+\newcommand{\lacIoldencaps}{1\,430k}
+\newcommand{\lacIolddecaps}{1\,960k}
+\newcommand{\lacIoldcpakeygen}{851k}
+\newcommand{\lacIoldcpaenc}{1\,424k}
+\newcommand{\lacIoldcpadec}{528k}
+\newcommand{\lacIoldpolymul}{638k}
+
+% M4 results for lac-192-v3a (impl=old)
+\newcommand{\lacIIIoldccakeygen}{1\,507k}
+\newcommand{\lacIIIoldencaps}{2\,427k}
+\newcommand{\lacIIIolddecaps}{3\,330k}
+\newcommand{\lacIIIoldcpakeygen}{1\,507k}
+\newcommand{\lacIIIoldcpaenc}{2\,417k}
+\newcommand{\lacIIIoldcpadec}{899k}
+\newcommand{\lacIIIoldpolymul}{1\,274k}
+
+% M4 results for lac-256-v3a (impl=old)
+\newcommand{\lacVoldccakeygen}{2\,020k}
+\newcommand{\lacVoldencaps}{3\,634k}
+\newcommand{\lacVolddecaps}{5\,328k}
+\newcommand{\lacVoldcpakeygen}{2\,020k}
+\newcommand{\lacVoldcpaenc}{3\,623k}
+\newcommand{\lacVoldcpadec}{1\,691k}
+\newcommand{\lacVoldpolymul}{1\,701k}
 

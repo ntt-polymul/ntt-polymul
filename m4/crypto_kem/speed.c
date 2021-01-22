@@ -12,9 +12,11 @@
 #include "poly.h"
 void MatrixVectorMul(polyvec *a, uint16_t skpv[SABER_K][SABER_N], uint16_t res[SABER_K][SABER_N], uint16_t mod, int16_t transpose);
 void InnerProd(uint16_t pkcl[SABER_K][SABER_N],uint16_t skpv[SABER_K][SABER_N],uint16_t mod,uint16_t res[SABER_N]);
-#else // NTRU
+#elif defined(NTRU_N)
 #include "owcpa.h"
 #include "poly.h"
+#else
+#include "bin-lwe.h"
 #endif
 
 
@@ -120,7 +122,7 @@ int main(void)
     t1 = hal_get_time();
     printcycles("inner prod cycles:", t1-t0);
 
-    #else // NTRU
+    #elif defined(NTRU_N)
 
     unsigned char seed[NTRU_SEEDBYTES];
     randombytes(seed, sizeof seed);
@@ -163,6 +165,51 @@ int main(void)
     t1 = hal_get_time();
     printcycles("polymul cycles:", t1-t0);
     #endif
+
+
+    #else // LAC
+
+    unsigned long long clen, mlen;
+    uint8_t buf[MESSAGE_LEN];
+
+
+    t0 = hal_get_time();
+    crypto_encrypt_keypair(pk, sk);
+    t1 = hal_get_time();
+    printcycles("cpa keypair cycles:", t1-t0);
+
+    randombytes(key_a, MESSAGE_LEN);
+
+    t0 = hal_get_time();
+    crypto_encrypt(ct, &clen, key_a, MESSAGE_LEN, pk);
+    t1 = hal_get_time();
+    printcycles("cpa enc cycles:", t1-t0);
+
+    t0 = hal_get_time();
+    crypto_encrypt_open(key_b, &mlen, ct, clen, sk);
+    t1 = hal_get_time();
+    printcycles("cpa dec cycles:", t1-t0);
+
+    if(memcmp(key_a, key_b, MESSAGE_LEN)) {
+      hal_send_str("ERROR KEYS\n");
+    }
+    else {
+      hal_send_str("OK KEYS\n");
+    }
+
+    uint8_t a[DIM_N], s[DIM_N], b[DIM_N];
+    uint8_t seed[2*SAMPLE_LEN];
+    randombytes(b, sizeof b);
+    randombytes(seed, sizeof seed);
+    gen_r(s, seed);
+
+    t0 = hal_get_time();
+    poly_mul(a, s, b, DIM_N);
+    t1 = hal_get_time();
+    printcycles("polymul cycles:", t1-t0);
+
+
+
     #endif
 
 

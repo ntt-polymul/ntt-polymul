@@ -127,6 +127,10 @@ with open(f"benchmarks.tex", "a") as outfile:
     bench("ntruhps2048677", "ntruhpsIII", "m4", iterations, outfile)
     bench("ntruhps4096821", "ntruhpsV", "m4", iterations, outfile)
 
+    bench("lac-128-v3a", "lacI", "m4", iterations, outfile)
+    bench("lac-192-v3a", "lacIII", "m4", iterations, outfile)
+    bench("lac-256-v3a", "lacV", "m4", iterations, outfile)
+
     print(f"% Benchmarking old toom4 implementations from pqm4 to obtain CPA cycle counts", file=outfile)
     bench("lightsaber", "lightsabertoom", "toom", iterations, outfile, True)
     bench("saber", "sabertoom", "toom", iterations, outfile, True)
@@ -137,3 +141,7 @@ with open(f"benchmarks.tex", "a") as outfile:
     bench("ntruhps2048509", "ntruhpsItoom", "toom", iterations, outfile)
     bench("ntruhps2048677", "ntruhpsIIItoom", "toom", iterations, outfile)
     bench("ntruhps4096821", "ntruhpsVtoom", "toom", iterations, outfile)
+
+    bench("lac-128-v3a", "lacIold", "old", iterations, outfile)
+    bench("lac-192-v3a", "lacIIIold", "old", iterations, outfile)
+    bench("lac-256-v3a", "lacVold", "old", iterations, outfile)

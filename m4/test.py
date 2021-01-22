@@ -31,7 +31,7 @@ def test(scheme):
                 break
 
     log = log.decode(errors="ignore")
-    assert log.count("ERROR") == 0 and log.count("OK") == 30
+    assert log.count("ERROR") == 0 and log.count("OK") == 10
 
 test("lightsaber")
 test("saber")
@@ -41,4 +41,8 @@ test("ntruhrss701")
 test("ntruhps2048509")
 test("ntruhps2048677")
 test("ntruhps4096821")
+
+test("lac-128-v3a")
+test("lac-192-v3a")
+test("lac-256-v3a")
 print("all tests passed.")

@@ -80,80 +80,6 @@ static int test_keys(void)
 }
 
 
-static int test_invalid_sk_a(void)
-{
-  unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
-  unsigned char key_a[CRYPTO_BYTES], key_b[CRYPTO_BYTES];
-  unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-  unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
-  int i;
-
-  for(i=0; i<NTESTS; i++)
-  {
-    //Alice generates a public key
-    crypto_kem_keypair(pk, sk_a);
-
-    //Bob derives a secret key and creates a response
-    crypto_kem_enc(sendb, key_b, pk);
-
-    //Replace secret key with random values
-    randombytes(sk_a, CRYPTO_SECRETKEYBYTES);
-
-    //Alice uses Bobs response to get her secre key
-    crypto_kem_dec(key_a, sendb, sk_a);
-
-    if(!memcmp(key_a, key_b, CRYPTO_BYTES))
-    {
-      hal_send_str("ERROR invalid sk_a\n");
-    }
-    else
-    {
-      hal_send_str("OK invalid sk_a\n");
-    }
-  }
-
-  return 0;
-}
-
-
-static int test_invalid_ciphertext(void)
-{
-  unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
-  unsigned char key_a[CRYPTO_BYTES], key_b[CRYPTO_BYTES];
-  unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-  unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
-  int i;
-  size_t pos;
-
-  for(i=0; i<NTESTS; i++)
-  {
-    randombytes((unsigned char *)&pos, sizeof(size_t));
-
-    //Alice generates a public key
-    crypto_kem_keypair(pk, sk_a);
-
-    //Bob derives a secret key and creates a response
-    crypto_kem_enc(sendb, key_b, pk);
-
-    // Change ciphertext to random value
-    randombytes(sendb, sizeof(sendb));
-
-    //Alice uses Bobs response to get her secret key
-    crypto_kem_dec(key_a, sendb, sk_a);
-
-    if(!memcmp(key_a, key_b, CRYPTO_BYTES))
-    {
-      hal_send_str("ERROR invalid ciphertext\n");
-    }
-    else
-    {
-      hal_send_str("OK invalid ciphertext\n");
-    }
-  }
-
-  return 0;
-}
-
 int main(void)
 {
   hal_setup(CLOCK_FAST);
@@ -163,8 +89,6 @@ int main(void)
   for(i=0;i<10;i++)
     hal_send_str("==========================");
   test_keys();
-  test_invalid_sk_a();
-  test_invalid_ciphertext();
   hal_send_str("#");
 
   while(1);

@@ -36,9 +36,9 @@ LDFLAGS_HOST = -lm
 # override as desired
 TYPE=kem
 
-COMMONSOURCES= common/fips202.c
+COMMONSOURCES= common/fips202.c common/sha2.c common/aes.c
 COMMONSOURCES_HOST=$(COMMONSOURCES) common/keccakf1600.c
-COMMONSOURCES_M4=$(COMMONSOURCES) common/keccakf1600.S
+COMMONSOURCES_M4=$(COMMONSOURCES) common/keccakf1600.S common/aes.S common/crypto_hashblocks_sha512_inner32.s common/crypto_hashblocks_sha512.c
 
 COMMONINCLUDES_M4=$(COMMONINCLUDES) -I"common"
 
