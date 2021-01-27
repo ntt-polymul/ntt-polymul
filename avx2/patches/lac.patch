@@ -1,0 +1,584 @@
+diff -ruN LAC_orig/AVX2_Implementation/bin-lwe.h LAC/AVX2_Implementation/bin-lwe.h
+--- LAC_orig/AVX2_Implementation/bin-lwe.h	2019-03-07 17:49:14.000000000 +0100
++++ LAC/AVX2_Implementation/bin-lwe.h	2020-11-07 14:11:41.227216416 +0100
+@@ -8,9 +8,10 @@
+ int gen_psi_fix_ham(char *e, unsigned int vec_num, unsigned char *seed);
+ // poly_mul  b=[as]
+ int poly_mul(const unsigned char *a, const char *s, unsigned char *b, unsigned int  vec_num);
++void nttmul_polysmall_mul(uint8_t *r, const uint8_t *a, const int8_t *b);
+ // poly_aff  b=as+e 
+ int poly_aff(const unsigned char *a, const  char *s, char *e, unsigned char *b, unsigned int vec_num);
+ // compress: cut the low 4bit
+ int poly_compress(const unsigned char *in,  unsigned char *out, const unsigned int vec_num);
+ // de-compress: set the low 4bit to be zero
+-int poly_decompress(const unsigned char *in, unsigned char *out, const unsigned int vec_num);
+\ No newline at end of file
++int poly_decompress(const unsigned char *in, unsigned char *out, const unsigned int vec_num);
+diff -ruN LAC_orig/AVX2_Implementation/cpucycles.c LAC/AVX2_Implementation/cpucycles.c
+--- LAC_orig/AVX2_Implementation/cpucycles.c	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/cpucycles.c	2020-11-07 12:31:04.312731076 +0100
+@@ -0,0 +1,17 @@
++#include <stdint.h>
++#include "cpucycles.h"
++
++uint64_t cpucycles_overhead(void) {
++  uint64_t t0, t1, overhead = -1LL;
++  unsigned int i;
++
++  for(i=0;i<100000;i++) {
++    t0 = cpucycles();
++    __asm__ volatile ("");
++    t1 = cpucycles();
++    if(t1 - t0 < overhead)
++      overhead = t1 - t0;
++  }
++
++  return overhead;
++}
+diff -ruN LAC_orig/AVX2_Implementation/cpucycles.h LAC/AVX2_Implementation/cpucycles.h
+--- LAC_orig/AVX2_Implementation/cpucycles.h	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/cpucycles.h	2021-01-22 18:38:19.814750540 +0100
+@@ -0,0 +1,33 @@
++#ifndef CPUCYCLES_H
++#define CPUCYCLES_H
++
++#include <stdint.h>
++
++#ifdef USE_RDPMC  /* Needs echo 2 > /sys/devices/cpu/rdpmc */
++
++static inline uint64_t cpucycles(void) {
++  const uint32_t ecx = (1U << 30) + 1;
++  uint64_t result;
++
++  __asm__ volatile ("rdpmc; shlq $32,%%rdx; orq %%rdx,%%rax"
++    : "=a" (result) : "c" (ecx) : "rdx");
++
++  return result;
++}
++
++#else
++
++static inline uint64_t cpucycles(void) {
++  uint64_t result;
++
++  __asm__ volatile ("rdtsc; shlq $32,%%rdx; orq %%rdx,%%rax"
++    : "=a" (result) : : "%rdx");
++
++  return result;
++}
++
++#endif
++
++uint64_t cpucycles_overhead(void);
++
++#endif
+diff -ruN LAC_orig/AVX2_Implementation/encrypt.c LAC/AVX2_Implementation/encrypt.c
+--- LAC_orig/AVX2_Implementation/encrypt.c	2019-03-10 14:01:16.000000000 +0100
++++ LAC/AVX2_Implementation/encrypt.c	2021-01-26 19:24:56.209329377 +0100
+@@ -1,3 +1,4 @@
++#include <immintrin.h>
+ #include <string.h>
+ #include "api.h"
+ #include "rand.h"
+@@ -7,6 +8,17 @@
+ 
+ #define RATIO 125
+ 
++static void nttmul_polysmall_add(uint8_t *r, const uint8_t *a, const int8_t *b) {
++  unsigned int i;
++  __m256i f,g;
++  for(i=0;i<DIM_N/32;i++) {
++    f = _mm256_loadu_si256((__m256i *)&a[32*i]);
++    g = _mm256_loadu_si256((__m256i *)&b[32*i]);
++    f = _mm256_add_epi8(f,g);
++    _mm256_storeu_si256((__m256i *)&r[32*i],f);
++  }
++}
++
+ //key generation
+ int crypto_encrypt_keypair( unsigned char *pk, unsigned char *sk)
+ {
+@@ -74,7 +86,12 @@
+ 	gen_psi_fix_ham((char*)sk,DIM_N,seeds+SEED_LEN);
+ 	gen_psi_fix_ham((char*)e,DIM_N,seeds+2*SEED_LEN);
+ 	//compute pk=a*sk+e
++#if NTTMUL
++	nttmul_polysmall_mul(pk+SEED_LEN,a,(int8_t*)sk);
++	nttmul_polysmall_add(pk+SEED_LEN,pk+SEED_LEN,(int8_t*)e);
++#else
+ 	poly_aff(a,(char *)sk,e,pk+SEED_LEN,DIM_N);
++#endif
+ 	//copy pk=as+e to the second part of sk, now sk=s|pk
+ 	memcpy(sk+DIM_N,pk,PK_LEN);
+ 	return 0;
+@@ -134,7 +151,11 @@
+ 	//c2 decompress
+ 	poly_decompress(c+DIM_N,c2,c2_len);
+ 	//c1*sk
++#if NTTMUL
++	nttmul_polysmall_mul(out,c,(int8_t*)sk);
++#else
+ 	poly_mul(c,(char *)sk,out,DIM_N);
++#endif
+ 	//compute c2-c1*sk and recover data from m*q/2+e
+ 	for(i=0;i<vec_bound;i++)
+ 	{
+@@ -174,7 +195,11 @@
+ 	//c2 decompress
+ 	poly_decompress(c+DIM_N,c2,c2_len);
+ 	//c1*sk
++#if NTTMUL
++	nttmul_polysmall_mul(out,c,(int8_t*)sk);
++#else
+ 	poly_mul(c,(char*)sk,out,DIM_N);
++#endif
+ 	//compute mlen
+ 	*mlen=c2_len/8-ECC_LEN;
+ 	//init code
+@@ -241,8 +266,12 @@
+ 	//generate error vector e1
+ 	gen_psi_fix_ham(e1,DIM_N,seeds+SEED_LEN);
+ 	//compute c1=a*r+e1
++#if NTTMUL
++	nttmul_polysmall_mul(c,a,(int8_t*)r);
++	nttmul_polysmall_add(c,c,(int8_t*)e1);
++#else
+ 	poly_aff(a,r,e1,c,DIM_N);
+-	
++#endif
+ 	//D2 encoding
+ 	#ifdef LAC256
+ 	
+@@ -277,7 +306,14 @@
+ 	}
+ 	#endif
+ 	//c2=b*r+e2+m*[q/2]
++#if NTTMUL
++	uint8_t buf[DIM_N];
++	nttmul_polysmall_mul(buf,pk+SEED_LEN,(int8_t*)r);
++	nttmul_polysmall_add(buf,buf,(int8_t*)e2);
++	memcpy(c2,buf,c2_len);
++#else
+ 	poly_aff(pk+SEED_LEN,r,e2,c2,c2_len);
++#endif
+ 	//compress c2
+ 	poly_compress(c2,c+DIM_N,c2_len);
+ 	*clen=DIM_N+c2_len/2;
+diff -ruN LAC_orig/AVX2_Implementation/lac_param.h LAC/AVX2_Implementation/lac_param.h
+--- LAC_orig/AVX2_Implementation/lac_param.h	2019-03-15 17:30:02.000000000 +0100
++++ LAC/AVX2_Implementation/lac_param.h	2020-11-07 12:58:02.431131799 +0100
+@@ -1,10 +1,12 @@
+ //#define TEST_ROW_ERROR_RATE
+ //security level
++#if !defined(LAC128) && !defined(LAC192) && !defined(LAC256)
+ #define LAC128
++#endif
+ //#define BCH_CONSTANT_TIME
+ //modulus
+-#define Q 251
+-#define BIG_Q 257024//1024*Q 
++#define Q 256
++#define BIG_Q (1024*Q)
+ 
+ #if defined(LAC128)
+ //parameter for LAC_LIGHT
+@@ -43,4 +45,4 @@
+ #define C2_VEC_NUM 800//2*(DATA_LEN+ECC_LEN)*8
+ #define PSI//secret and error distribution
+ #define HASH_TYPE "SHA256"
+-#endif
+\ No newline at end of file
++#endif
+diff -ruN LAC_orig/AVX2_Implementation/Makefile LAC/AVX2_Implementation/Makefile
+--- LAC_orig/AVX2_Implementation/Makefile	2017-12-12 10:22:44.000000000 +0100
++++ LAC/AVX2_Implementation/Makefile	2021-01-22 18:43:06.796788692 +0100
+@@ -1,11 +1,30 @@
+ objects = main.o test_correctness.o test_cpucycles.o test_speed.o \
+           ake.o ke.o kem.o encrypt.o ecc.o bch.o bin-lwe.o rand.o rng.o
+-cflags = -O3 -Wall -mavx2 -DNDEBUG
+-
++sources = kem.c encrypt.c ecc.c bch.c bin-lwe.c rand.c
++cflags += -O3 -march=native -mtune=native -flto -Wall -mavx2 -DNDEBUG
++ldflags += -L../../ntt-polymul/avx2
+ 
+ lac : $(objects)
+ 	gcc -o lac $(objects)  -lcrypto 
+ 
++test_lac128: $(sources) test_kem.c
++	gcc $(cflags) $(ldflags) -DLAC128 $(sources) test_kem.c randombytes.c -o $@ -llac128mul -lcrypto
++
++test_lac192: $(sources) test_kem.c
++	gcc $(cflags) $(ldflags) -DLAC192 $(sources) test_kem.c randombytes.c -o $@ -llac192mul -lcrypto
++
++test_lac256: $(sources) test_kem.c
++	gcc $(cflags) $(ldflags) -DLAC256 $(sources) test_kem.c randombytes.c -o $@ -llac192mul -lcrypto
++
++test_speed_lac128: $(sources) test_speed_kem.c
++	gcc $(cflags) $(ldflags) -DLAC128 $(sources) test_speed_kem.c randombytes.c cpucycles.c speed_print.c -o $@ -llac128mul -lcrypto
++
++test_speed_lac192: $(sources) test_speed_kem.c
++	gcc $(cflags) $(ldflags) -DLAC192 $(sources) test_speed_kem.c randombytes.c cpucycles.c speed_print.c -o $@ -llac192mul -lcrypto
++
++test_speed_lac256: $(sources) test_speed_kem.c
++	gcc $(cflags) $(ldflags) -DLAC256 $(sources) test_speed_kem.c randombytes.c cpucycles.c speed_print.c -o $@ -llac192mul -lcrypto
++
+ main.o: main.c test_correctness.h test_cpucycles.h test_speed.h api.h lac_param.h
+ 	gcc -c main.c $(cflags)
+ 
+@@ -49,4 +68,4 @@
+ 	rm -f lac lac.exemak $(objects)
+ 
+ 
+-          
+\ No newline at end of file
++          
+diff -ruN LAC_orig/AVX2_Implementation/randombytes.c LAC/AVX2_Implementation/randombytes.c
+--- LAC_orig/AVX2_Implementation/randombytes.c	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/randombytes.c	2021-01-22 18:38:52.331553117 +0100
+@@ -0,0 +1,80 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include "randombytes.h"
++
++#ifdef _WIN32
++#include <windows.h>
++#include <wincrypt.h>
++#else
++#include <fcntl.h>
++#include <errno.h>
++#ifdef __linux__
++#define _GNU_SOURCE
++#include <unistd.h>
++#include <sys/syscall.h>
++#else
++#include <unistd.h>
++#endif
++#endif
++
++#ifdef _WIN32
++void randombytes(uint8_t *out, size_t outlen) {
++  HCRYPTPROV ctx;
++  size_t len;
++
++  if(!CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
++    abort();
++
++  while(outlen > 0) {
++    len = (outlen > 1048576) ? 1048576 : outlen;
++    if(!CryptGenRandom(ctx, len, (BYTE *)out))
++      abort();
++
++    out += len;
++    outlen -= len;
++  }
++
++  if(!CryptReleaseContext(ctx, 0))
++    abort();
++}
++#elif defined(__linux__) && defined(SYS_getrandom)
++void randombytes(uint8_t *out, size_t outlen) {
++  ssize_t ret;
++
++  while(outlen > 0) {
++    ret = syscall(SYS_getrandom, out, outlen, 0);
++    if(ret == -1 && errno == EINTR)
++      continue;
++    else if(ret == -1)
++      abort();
++
++    out += ret;
++    outlen -= ret;
++  }
++}
++#else
++void randombytes(uint8_t *out, size_t outlen) {
++  static int fd = -1;
++  ssize_t ret;
++
++  while(fd == -1) {
++    fd = open("/dev/urandom", O_RDONLY);
++    if(fd == -1 && errno == EINTR)
++      continue;
++    else if(fd == -1)
++      abort();
++  }
++
++  while(outlen > 0) {
++    ret = read(fd, out, outlen);
++    if(ret == -1 && errno == EINTR)
++      continue;
++    else if(ret == -1)
++      abort();
++
++    out += ret;
++    outlen -= ret;
++  }
++}
++#endif
+diff -ruN LAC_orig/AVX2_Implementation/randombytes.h LAC/AVX2_Implementation/randombytes.h
+--- LAC_orig/AVX2_Implementation/randombytes.h	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/randombytes.h	2020-11-07 12:31:04.312731076 +0100
+@@ -0,0 +1,9 @@
++#ifndef RANDOMBYTES_H
++#define RANDOMBYTES_H
++
++#include <stddef.h>
++#include <stdint.h>
++
++void randombytes(uint8_t *out, size_t outlen);
++
++#endif
+diff -ruN LAC_orig/AVX2_Implementation/speed_print.c LAC/AVX2_Implementation/speed_print.c
+--- LAC_orig/AVX2_Implementation/speed_print.c	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/speed_print.c	2020-11-07 19:44:52.208836239 +0100
+@@ -0,0 +1,51 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "cpucycles.h"
++#include "speed_print.h"
++
++static int cmp_uint64(const void *a, const void *b) {
++  if(*(uint64_t *)a < *(uint64_t *)b) return -1;
++  if(*(uint64_t *)a > *(uint64_t *)b) return 1;
++  return 0;
++}
++
++static uint64_t median(uint64_t *l, size_t llen) {
++  qsort(l,llen,sizeof(uint64_t),cmp_uint64);
++
++  if(llen%2) return l[llen/2];
++  else return (l[llen/2-1]+l[llen/2])/2;
++}
++
++static uint64_t average(uint64_t *t, size_t tlen) {
++  size_t i;
++  uint64_t acc=0;
++
++  for(i=0;i<tlen;i++)
++    acc += t[i];
++
++  return acc/tlen;
++}
++
++void print_results(const char *s, uint64_t *t, size_t tlen) {
++  size_t i;
++  static uint64_t overhead = -1;
++
++  if(tlen < 2) {
++    fprintf(stderr, "ERROR: Need a least two cycle counts!\n");
++    return;
++  }
++
++  if(overhead  == (uint64_t)-1)
++    overhead = cpucycles_overhead();
++
++  tlen--;
++  for(i=0;i<tlen;++i)
++    t[i] = t[i+1] - t[i] - overhead;
++
++  printf("%s\n", s);
++  printf("median: %llu cycles/ticks\n", (unsigned long long)median(t, tlen));
++  printf("average: %llu cycles/ticks\n", (unsigned long long)average(t, tlen));
++  printf("\n");
++}
+diff -ruN LAC_orig/AVX2_Implementation/speed_print.h LAC/AVX2_Implementation/speed_print.h
+--- LAC_orig/AVX2_Implementation/speed_print.h	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/speed_print.h	2020-11-07 19:44:52.208836239 +0100
+@@ -0,0 +1,9 @@
++#ifndef PRINT_SPEED_H
++#define PRINT_SPEED_H
++
++#include <stddef.h>
++#include <stdint.h>
++
++void print_results(const char *s, uint64_t *t, size_t tlen);
++
++#endif
+diff -ruN LAC_orig/AVX2_Implementation/test_kem.c LAC/AVX2_Implementation/test_kem.c
+--- LAC_orig/AVX2_Implementation/test_kem.c	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/test_kem.c	2021-01-22 18:44:12.253896892 +0100
+@@ -0,0 +1,116 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++#include "api.h"
++#include "randombytes.h"
++
++#define NTESTS 1000
++
++static int test_keys()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR keys\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_sk_a()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Replace secret key with random values
++  randombytes(sk, CRYPTO_SECRETKEYBYTES);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid sk\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_ciphertext()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++  uint8_t b;
++  size_t pos;
++
++  do {
++    randombytes(&b, sizeof(uint8_t));
++  } while(!b);
++  randombytes((uint8_t *)&pos, sizeof(size_t));
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Change some byte in the ciphertext (i.e., encapsulated key)
++  ct[pos % CRYPTO_CIPHERTEXTBYTES] ^= b;
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid ciphertext\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++int main(void)
++{
++  unsigned int i;
++  int r;
++
++  for(i=0;i<NTESTS;i++) {
++    r  = test_keys();
++    r |= test_invalid_sk_a();
++    r |= test_invalid_ciphertext();
++    if(r)
++      return 1;
++  }
++
++  printf("CRYPTO_SECRETKEYBYTES:  %d\n",CRYPTO_SECRETKEYBYTES);
++  printf("CRYPTO_PUBLICKEYBYTES:  %d\n",CRYPTO_PUBLICKEYBYTES);
++  printf("CRYPTO_CIPHERTEXTBYTES: %d\n",CRYPTO_CIPHERTEXTBYTES);
++
++  return 0;
++}
+diff -ruN LAC_orig/AVX2_Implementation/test_speed_kem.c LAC/AVX2_Implementation/test_speed_kem.c
+--- LAC_orig/AVX2_Implementation/test_speed_kem.c	1970-01-01 01:00:00.000000000 +0100
++++ LAC/AVX2_Implementation/test_speed_kem.c	2021-01-26 19:33:42.011474402 +0100
+@@ -0,0 +1,61 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "api.h"
++#include "cpucycles.h"
++#include "speed_print.h"
++
++#define NTESTS 10000
++
++uint64_t t[NTESTS];
++
++int main()
++{
++  unsigned int i;
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key[CRYPTO_BYTES];
++  uint8_t seed[CRYPTO_BYTES];
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    kg_seed(pk, sk, seed);
++  }
++  print_results("indcpa_keypair: ", t, NTESTS);
++
++  uint8_t m[32];
++  unsigned long long mlen = 32, clen;
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    pke_enc_seed(pk, m, mlen, ct, &clen, seed);
++  }
++  print_results("indcpa_enc: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    pke_dec(sk, ct, clen, m, &mlen);
++  }
++  print_results("indcpa_dec: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_keypair(pk, sk);
++  }
++  print_results("kem_keypair: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_enc(ct, key, pk);
++  }
++  print_results("kem_encaps: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_dec(key, ct, sk);
++  }
++  print_results("kem_decaps: ", t, NTESTS);
++
++  return 0;
++}

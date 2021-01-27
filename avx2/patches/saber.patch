@@ -1,0 +1,682 @@
+diff --git a/AVX/Makefile b/AVX/Makefile
+index 9f03a2a..1e3a8b8 100644
+--- a/AVX/Makefile
++++ b/AVX/Makefile
+@@ -1,8 +1,9 @@
+ CC 		  = /usr/bin/gcc
+ CFLAGS  = -Wall -Wextra -O3 -fomit-frame-pointer -msse2avx -mavx2 -march=native -lcrypto
+ CFLAGS2  = -Wall -Wextra -O3 -fomit-frame-pointer -msse2avx -mavx2 -march=native -std=c11 
+-CFLAGS3  = -Wall -Wextra -O3 -fomit-frame-pointer -msse2avx -mavx2 -march=native
+-CLANG   = clang -march=native -O3 -fomit-frame-pointer -lcrypto -fwrapv -Qunused-arguments -w
++CFLAGS3  = -Wall -Wextra -O3 -fomit-frame-pointer -msse2avx -mavx2 -march=native -fPIC $(EXTRAFLAGS)
++LDFLAGS = -L../../ntt-polymul/avx2
++CLANG   = clang -march=native -O3 -fomit-frame-pointer -lcrypto -fwrapv -Qunused-arguments -w -fPIC
+ RM 		  = /bin/rm
+ 
+ 
+@@ -12,7 +13,7 @@ all: test/PQCgenKAT_kem \
+ 
+ SOURCES = pack_unpack.c poly.c verify.c fips202.o fips202x4.c SABER_indcpa.c kem.c \
+ 					cbd.c crypto_stream_aes256ctr.c \
+-					keccak4x/KeccakP-1600-times4-SIMD256.o rng.o
++					keccak4x/KeccakP-1600-times4-SIMD256.o
+ #rng.o
+ #randombytes.c
+ 
+@@ -32,6 +33,23 @@ test/test_sample_matrix: $(SOURCES) $(HEADERS) test/sample_matrix_test.c
+ test/PQCgenKAT_kem: $(SOURCES2) $(HEADERS) test/PQCgenKAT_kem.c 
+ 	$(CC) $(CFLAGS3) -o $@ $(SOURCES2) test/PQCgenKAT_kem.c -lcrypto  
+ 
++test_lightsaber: $(SOURCES) $(HEADERS) test_kem.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=LightSaber -o $@ $(SOURCES) test_kem.c randombytes.c -llightsabermul
++
++test_saber: $(SOURCES) $(HEADERS) test_kem.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=Saber -o $@ $(SOURCES) test_kem.c randombytes.c -lsabermul
++
++test_firesaber: $(SOURCES) $(HEADERS) test_kem.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=FireSaber -o $@ $(SOURCES) test_kem.c randombytes.c -lfiresabermul
++
++test_lightsaberspeed: $(SOURCES) $(HEADERS) test_speed.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=LightSaber -o $@ $(SOURCES) test_speed.c cpucycles.c speed_print.c randombytes.c -llightsabermul
++
++test_saberspeed: $(SOURCES) $(HEADERS) test_speed.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=Saber -o $@ $(SOURCES) test_speed.c cpucycles.c speed_print.c randombytes.c -lsabermul
++
++test_firesaberspeed: $(SOURCES) $(HEADERS) test_speed.c
++	$(CC) $(CFLAGS3) $(LDFLAGS) -DSABER_TYPE=FireSaber -o $@ $(SOURCES) test_speed.c cpucycles.c speed_print.c randombytes.c -lfiresabermul
+ 
+ keccak4x/KeccakP-1600-times4-SIMD256.o: keccak4x/KeccakP-1600-times4-SIMD256.c \
+ 					keccak4x/align.h \
+@@ -62,5 +80,10 @@ clean:
+ 	-$(RM) -r test/test_kex
+ 	-$(RM) -r test/PQCgenKAT_kem
+ 	-$(RM) -r keccak4x/KeccakP-1600-times4-SIMD256.o
+-
++	-$(RM) test_lightsaber
++	-$(RM) test_saber
++	-$(RM) test_firesaber
++	-$(RM) test_lightsaberspeed
++	-$(RM) test_saberspeed
++	-$(RM) test_firesaberspeed
+ 
+diff --git a/AVX/SABER_indcpa.c b/AVX/SABER_indcpa.c
+index eba89a8..026c98d 100644
+--- a/AVX/SABER_indcpa.c
++++ b/AVX/SABER_indcpa.c
+@@ -18,6 +18,8 @@
+ #define h2 ( (1<<(SABER_EP-2)) - (1<<(SABER_EP-SABER_ET-1)) + (1<<(SABER_EQ-SABER_EP-1)) )
+ 
+ 
++extern void nttmul_polyvec_matrix_vector_mul(int16_t *t, const int16_t *a, const int16_t *skpv, int transpose);
++extern void nttmul_polyvec_iprod(int16_t *r, const int16_t *a, const int16_t *b);
+ 
+ uint64_t mask_ar[4]={~(0UL)};
+ __m256i mask_load;
+@@ -114,7 +116,7 @@ void GenMatrix(polyvec *a, const unsigned char *seed)
+     {
+ 	BS2POLq(buf+(i*SABER_K+j)*one_vector,temp_ar);
+ 	for(k=0;k<SABER_N;k++){
+-		a[i].vec[j].coeffs[k] = (temp_ar[k])& mod ;
++		a[i].vec[j].coeffs[k] = ((temp_ar[k])& mod) - 4096;
+ 	}
+     }
+   }
+@@ -137,17 +139,16 @@ void GenSecret(uint16_t r[SABER_K][SABER_N],const unsigned char *seed){
+ 		}
+ }
+ 
+-//********************************matrix-vector mul routines*****************************************************
+ void matrix_vector_mul(__m256i a1_avx_combined[NUM_POLY][NUM_POLY][AVX_N1], __m256i b_bucket[NUM_POLY][SCHB_N*4], __m256i res_avx[NUM_POLY][AVX_N1], int isTranspose);
+ void vector_vector_mul(__m256i a_avx[NUM_POLY][AVX_N1], __m256i b_bucket[NUM_POLY][SCHB_N*4], __m256i res_avx[AVX_N1]);
+ 
+-//********************************matrix-vector mul routines*****************************************************
+ 
+ void indcpa_kem_keypair(unsigned char *pk, unsigned char *sk)
+ {
+  
+   polyvec a[SABER_K];
+ 
++  __attribute__((aligned(32)))
+   uint16_t skpv1[SABER_K][SABER_N];
+ 
+   
+@@ -191,7 +192,24 @@ void indcpa_kem_keypair(unsigned char *pk, unsigned char *sk)
+ 
+   GenSecret(skpv1,noiseseed);
+ 
++//------------------Pack sk into byte string-------
+ 
++	POLVEC2BS(sk,skpv1,SABER_Q);
++
++
++#if NTTMUL
++  __m256i f;
++  nttmul_polyvec_matrix_vector_mul((int16_t *)skpv1, (int16_t *)a, (int16_t *)skpv1, 1);
++  for(i=0;i<SABER_K;i++) {
++    for(j=0;j<SABER_N/16;j++) {
++      f = _mm256_load_si256((__m256i *)&skpv1[i][16*j]);
++      f = _mm256_add_epi16(f, H1_avx);
++      f = _mm256_srli_epi16(f, (SABER_EQ-SABER_EP));
++      //f = _mm256_and_si256(f, mod);
++      _mm256_store_si256((__m256i *)&skpv1[i][16*j],f);
++    }
++  }
++#else
+  // Load sk into avx vectors		
+  for(i=0;i<SABER_K;i++)
+  {
+@@ -221,7 +239,7 @@ void indcpa_kem_keypair(unsigned char *pk, unsigned char *sk)
+ 	
+ 	// Now truncation
+ 
+-		
++
+ 	for(i=0;i<SABER_K;i++){ //shift right EQ-EP bits
+ 		for(j=0;j<SABER_N/16;j++){
+ 			res_avx[i][j]=_mm256_add_epi16 (res_avx[i][j], H1_avx);
+@@ -230,10 +248,6 @@ void indcpa_kem_keypair(unsigned char *pk, unsigned char *sk)
+ 		}
+ 	}
+ 
+-	//------------------Pack sk into byte string-------
+-		
+-	POLVEC2BS(sk,skpv1,SABER_Q);
+-
+ 	//------------------Pack pk into byte string-------
+ 	
+ 	for(i=0;i<SABER_K;i++){ // reuses skpv1[] for unpacking avx of public-key
+@@ -241,6 +255,7 @@ void indcpa_kem_keypair(unsigned char *pk, unsigned char *sk)
+ 		  	_mm256_maskstore_epi32 ((int *) (skpv1[i]+j*16), mask_load, res_avx[i][j]);
+ 		  }
+ 	  }
++#endif
+ 	POLVEC2BS(pk,skpv1,SABER_P); // load the public-key into pk byte string 	
+ 
+ 
+@@ -258,10 +273,13 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 	uint32_t i,j,k;
+ 	polyvec a[SABER_K];		// skpv;
+ 	unsigned char seed[SABER_SEEDBYTES];
++        __attribute__((aligned(32)))
+ 	uint16_t pkcl[SABER_K][SABER_N]; 	//public key of received by the client
+ 
+ 
++        __attribute__((aligned(32)))
+ 	uint16_t skpv1[SABER_K][SABER_N];
++        __attribute__((aligned(32)))
+ 	uint16_t temp[SABER_K][SABER_N];
+ 	uint16_t message[SABER_KEYBYTES*8];
+ 
+@@ -313,6 +331,19 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 	CLOCK2=cpucycles();
+ 	clock_secret=clock_secret+(CLOCK2-CLOCK1);
+ 
++#if NTTMUL
++  __m256i f;
++  nttmul_polyvec_matrix_vector_mul((int16_t *)temp, (int16_t *)a, (int16_t *)skpv1, 0);
++  for(i=0;i<SABER_K;i++) {
++    for(j=0;j<SABER_N/16;j++) {
++      f = _mm256_load_si256((__m256i *)&temp[i][16*j]);
++      f = _mm256_add_epi16(f, H1_avx);
++      f = _mm256_srli_epi16(f, (SABER_EQ-SABER_EP));
++      //f = _mm256_and_si256(f, mod);
++      _mm256_store_si256((__m256i *)&temp[i][16*j],f);
++    }
++  }
++#else
+ 
+ 	// ----------- Load skpv1 into avx vectors ---------- 
+ 	for(i=0;i<SABER_K;i++){ 
+@@ -357,7 +388,9 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 			_mm256_maskstore_epi32 ((int *)(temp[i]+j*16), mask_load, res_avx[i][j]);
+ 		  }
+ 	  }
+-	
++#endif
++
++
+ 	POLVEC2BS(ciphertext,temp, SABER_P); // Pack b_prime into ciphertext byte string
+ 
+ //**************client matrix-vector multiplication ends******************//
+@@ -367,6 +400,9 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 	//-------unpack the public_key
+ 	BS2POLVEC(pk, pkcl, SABER_P);
+ 
++#if NTTMUL
++  nttmul_polyvec_iprod((int16_t *)temp, (int16_t *)pkcl, (int16_t *)skpv1);
++#else
+ 	for(i=0;i<SABER_K;i++){
+ 		for(j=0; j<SABER_N/16; j++){
+ 		    pkcl_avx[i][j] = _mm256_loadu_si256 ((__m256i const *) (&pkcl[i][j*16]));
+@@ -391,6 +427,7 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 	for(i=0;i<SABER_N/16;i++){//adding h1
+  		vprime_avx[i]=_mm256_add_epi16(vprime_avx[i], H1_avx);
+ 	}
++#endif
+ 
+ 	// unpack message_received;
+ 	for(j=0; j<SABER_KEYBYTES; j++)
+@@ -407,6 +444,16 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 		message_avx[i] = _mm256_slli_epi16 (message_avx[i], (SABER_EP-1) );
+ 	}	
+ 
++#if NTTMUL
++  for(k=0;k<SABER_N/16;k++) {
++    f = _mm256_load_si256((__m256i *)&temp[0][16*k]);
++    f = _mm256_add_epi16(f, H1_avx);
++    f = _mm256_sub_epi16(f, message_avx[k]);
++    f = _mm256_and_si256(f, mod_p);
++    f = _mm256_srli_epi16(f, (SABER_EP-SABER_ET) );
++    _mm256_store_si256((__m256i *)&temp[0][16*k],f);
++  }
++#else
+ 	// SHIFTRIGHT(v'+h1-m mod p, EP-ET)
+ 	for(k=0;k<SABER_N/16;k++)
+ 	{
+@@ -420,6 +467,7 @@ void indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, c
+ 	{
+ 			_mm256_maskstore_epi32 ((int *) (temp[0]+j*16), mask_load, vprime_avx[j]);
+ 	}
++#endif
+ 	
+ 	#if Saber_type == 1
+ 		SABER_pack_3bit(msk_c, temp[0]);
+@@ -441,7 +489,9 @@ void indcpa_kem_dec(const unsigned char *sk, const unsigned char *ciphertext, un
+ {
+ 
+ 	uint32_t i,j;
++        __attribute__((aligned(32)))
+ 	uint16_t sksv[SABER_K][SABER_N]; //secret key of the server
++        __attribute__((aligned(32)))
+ 	uint16_t pksv[SABER_K][SABER_N];
+ 	uint16_t message_dec_unpacked[SABER_KEYBYTES*8];	// one element containes on decrypted bit;
+ 	uint8_t scale_ar[SABER_SCALEBYTES_KEM];
+@@ -478,6 +528,9 @@ void indcpa_kem_dec(const unsigned char *sk, const unsigned char *ciphertext, un
+ 	BS2POLVEC(sk, sksv, SABER_Q); //sksv is the secret-key
+ 	BS2POLVEC(ciphertext, pksv, SABER_P); //pksv is the ciphertext
+ 
++#if NTTMUL
++       nttmul_polyvec_iprod((int16_t *)message_dec_unpacked, (int16_t *)pksv, (int16_t *)sksv);
++#else
+ 	for(i=0;i<SABER_K;i++){
+ 		for(j=0; j<SABER_N/16; j++){
+ 		    sksv_avx[i][j] = _mm256_loadu_si256 ((__m256i const *) (&sksv[i][j*16]));
+@@ -507,6 +560,7 @@ void indcpa_kem_dec(const unsigned char *sk, const unsigned char *ciphertext, un
+ 	for(i=0; i<SABER_N/16; i++){
+ 		_mm256_maskstore_epi32 ((int *)(message_dec_unpacked+i*16), mask_load, v_avx[i]);
+ 	}
++#endif
+ 
+ 
+ 	for(i=0;i<SABER_SCALEBYTES_KEM;i++){
+diff --git a/AVX/api.h b/AVX/api.h
+index 3139993..1e70bbe 100644
+--- a/AVX/api.h
++++ b/AVX/api.h
+@@ -20,7 +20,7 @@
+ // Change the algorithm name 
+ //#define SABER_TYPE LightSaber
+ //#define SABER_TYPE Saber
+-#define SABER_TYPE FireSaber
++//#define SABER_TYPE FireSaber
+ 
+ //  Set these three values apropriately for your algorithm
+ #if SABER_TYPE == LightSaber
+diff --git a/AVX/cbd.c b/AVX/cbd.c
+index 8afcf0c..1a42557 100644
+--- a/AVX/cbd.c
++++ b/AVX/cbd.c
+@@ -44,11 +44,17 @@ void cbd(uint16_t *r, const unsigned char *buf)
+     a[3] = (d >> 18) & 0x7;
+     b[3] = (d >> 21);
+ 
++#if NTTMUL
++    r[4*i+0] = (uint16_t)(a[0]  - b[0]);
++    r[4*i+1] = (uint16_t)(a[1]  - b[1]);
++    r[4*i+2] = (uint16_t)(a[2]  - b[2]);
++    r[4*i+3] = (uint16_t)(a[3]  - b[3]);
++#else
+     r[4*i+0] = (uint16_t)(a[0]  - b[0]) & Qmod_minus1;
+     r[4*i+1] = (uint16_t)(a[1]  - b[1]) & Qmod_minus1;
+     r[4*i+2] = (uint16_t)(a[2]  - b[2]) & Qmod_minus1;
+     r[4*i+3] = (uint16_t)(a[3]  - b[3]) & Qmod_minus1;
+-
++#endif
+   }
+ #elif Saber_type == 2
+   uint32_t t,d, a[4], b[4];
+@@ -70,10 +76,17 @@ void cbd(uint16_t *r, const unsigned char *buf)
+     a[3] = (d >> 24) & 0xf;
+     b[3] = (d >> 28);
+ 
++#if NTTMUL
++    r[4*i+0] = (uint16_t)(a[0]  - b[0]);
++    r[4*i+1] = (uint16_t)(a[1]  - b[1]);
++    r[4*i+2] = (uint16_t)(a[2]  - b[2]);
++    r[4*i+3] = (uint16_t)(a[3]  - b[3]);
++#else
+     r[4*i+0] = (uint16_t)(a[0]  - b[0]) & Qmod_minus1;
+     r[4*i+1] = (uint16_t)(a[1]  - b[1]) & Qmod_minus1;
+     r[4*i+2] = (uint16_t)(a[2]  - b[2]) & Qmod_minus1;
+     r[4*i+3] = (uint16_t)(a[3]  - b[3]) & Qmod_minus1;
++#endif
+   }
+ #elif Saber_type == 1
+   uint64_t t,d, a[4], b[4];
+@@ -95,10 +108,17 @@ void cbd(uint16_t *r, const unsigned char *buf)
+     a[3] = (d >> 30) & 0x1f;
+     b[3] = (d >> 35);
+ 
++#if NTTMUL
++    r[4*i+0] = (uint16_t)(a[0]  - b[0]);
++    r[4*i+1] = (uint16_t)(a[1]  - b[1]);
++    r[4*i+2] = (uint16_t)(a[2]  - b[2]);
++    r[4*i+3] = (uint16_t)(a[3]  - b[3]);
++#else
+     r[4*i+0] = (uint16_t)(a[0]  - b[0]) & Qmod_minus1;
+     r[4*i+1] = (uint16_t)(a[1]  - b[1]) & Qmod_minus1;
+     r[4*i+2] = (uint16_t)(a[2]  - b[2]) & Qmod_minus1;
+     r[4*i+3] = (uint16_t)(a[3]  - b[3]) & Qmod_minus1;
++#endif
+   }
+ #else
+ #error "Unsupported SABER parameter."
+diff --git a/AVX/cpucycles.c b/AVX/cpucycles.c
+index e6803ce..d95ba3a 100644
+--- a/AVX/cpucycles.c
++++ b/AVX/cpucycles.c
+@@ -1,9 +1,17 @@
++#include <stdint.h>
+ #include "cpucycles.h"
+ 
+-long long cpucycles(void)
+-{
+-  unsigned long long result;
+-  asm volatile(".byte 15;.byte 49;shlq $32,%%rdx;orq %%rdx,%%rax"
+-    : "=a" (result) ::  "%rdx");
+-  return result;
++uint64_t cpucycles_overhead(void) {
++  uint64_t t0, t1, overhead = -1LL;
++  unsigned int i;
++
++  for(i=0;i<100000;i++) {
++    t0 = cpucycles();
++    __asm__ volatile ("");
++    t1 = cpucycles();
++    if(t1 - t0 < overhead)
++      overhead = t1 - t0;
++  }
++
++  return overhead;
+ }
+diff --git a/AVX/cpucycles.h b/AVX/cpucycles.h
+index 7aac8a4..7b7b9f7 100644
+--- a/AVX/cpucycles.h
++++ b/AVX/cpucycles.h
+@@ -1,6 +1,33 @@
+ #ifndef CPUCYCLES_H
+ #define CPUCYCLES_H
+ 
+-long long cpucycles(void);
++#include <stdint.h>
++
++#ifdef USE_RDPMC  /* Needs echo 2 > /sys/devices/cpu/rdpmc */
++
++static inline uint64_t cpucycles(void) {
++  const uint32_t ecx = (1U << 30) + 1;
++  uint64_t result;
++
++  __asm__ volatile ("rdpmc; shlq $32,%%rdx; orq %%rdx,%%rax"
++    : "=a" (result) : "c" (ecx) : "rdx");
++
++  return result;
++}
++
++#else
++
++static inline uint64_t cpucycles(void) {
++  uint64_t result;
++
++  __asm__ volatile ("rdtsc; shlq $32,%%rdx; orq %%rdx,%%rax"
++    : "=a" (result) : : "%rdx");
++
++  return result;
++}
++
++#endif
++
++uint64_t cpucycles_overhead(void);
+ 
+ #endif
+diff --git a/AVX/poly.h b/AVX/poly.h
+index b985a91..2342ad0 100644
+--- a/AVX/poly.h
++++ b/AVX/poly.h
+@@ -20,6 +20,7 @@ uint64_t count_enc;
+ 
+ typedef struct
+ {
++  __attribute__((aligned(32)))
+   uint16_t coeffs[SABER_N];
+ } poly;
+ 
+diff --git a/AVX/speed_print.c b/AVX/speed_print.c
+new file mode 100644
+index 0000000..59f147d
+--- /dev/null
++++ b/AVX/speed_print.c
+@@ -0,0 +1,51 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "cpucycles.h"
++#include "speed_print.h"
++
++static int cmp_uint64(const void *a, const void *b) {
++  if(*(uint64_t *)a < *(uint64_t *)b) return -1;
++  if(*(uint64_t *)a > *(uint64_t *)b) return 1;
++  return 0;
++}
++
++static uint64_t median(uint64_t *l, size_t llen) {
++  qsort(l,llen,sizeof(uint64_t),cmp_uint64);
++
++  if(llen%2) return l[llen/2];
++  else return (l[llen/2-1]+l[llen/2])/2;
++}
++
++static uint64_t average(uint64_t *t, size_t tlen) {
++  size_t i;
++  uint64_t acc=0;
++
++  for(i=0;i<tlen;i++)
++    acc += t[i];
++
++  return acc/tlen;
++}
++
++void print_results(const char *s, uint64_t *t, size_t tlen) {
++  size_t i;
++  static uint64_t overhead = -1;
++
++  if(tlen < 2) {
++    fprintf(stderr, "ERROR: Need a least two cycle counts!\n");
++    return;
++  }
++
++  if(overhead  == (uint64_t)-1)
++    overhead = cpucycles_overhead();
++
++  tlen--;
++  for(i=0;i<tlen;++i)
++    t[i] = t[i+1] - t[i] - overhead;
++
++  printf("%s\n", s);
++  printf("median: %llu cycles/ticks\n", (unsigned long long)median(t, tlen));
++  printf("average: %llu cycles/ticks\n", (unsigned long long)average(t, tlen));
++  printf("\n");
++}
+diff --git a/AVX/speed_print.h b/AVX/speed_print.h
+new file mode 100644
+index 0000000..00b2444
+--- /dev/null
++++ b/AVX/speed_print.h
+@@ -0,0 +1,9 @@
++#ifndef PRINT_SPEED_H
++#define PRINT_SPEED_H
++
++#include <stddef.h>
++#include <stdint.h>
++
++void print_results(const char *s, uint64_t *t, size_t tlen);
++
++#endif
+diff --git a/AVX/test_kem.c b/AVX/test_kem.c
+new file mode 100644
+index 0000000..2fbd3fe
+--- /dev/null
++++ b/AVX/test_kem.c
+@@ -0,0 +1,116 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++#include "api.h"
++#include "randombytes.h"
++
++#define NTESTS 1000
++
++static int test_keys()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR keys\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_sk_a()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Replace secret key with random values
++  randombytes(sk, CRYPTO_SECRETKEYBYTES);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid sk\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_ciphertext()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++  uint8_t b;
++  size_t pos;
++
++  do {
++    randombytes(&b, sizeof(uint8_t));
++  } while(!b);
++  randombytes((uint8_t *)&pos, sizeof(size_t));
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Change some byte in the ciphertext (i.e., encapsulated key)
++  ct[pos % CRYPTO_CIPHERTEXTBYTES] ^= b;
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid ciphertext\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++int main(void)
++{
++  unsigned int i;
++  int r;
++
++  for(i=0;i<NTESTS;i++) {
++    r  = test_keys();
++    r |= test_invalid_sk_a();
++    r |= test_invalid_ciphertext();
++    if(r)
++      return 1;
++  }
++
++  printf("CRYPTO_SECRETKEYBYTES:  %d\n",CRYPTO_SECRETKEYBYTES);
++  printf("CRYPTO_PUBLICKEYBYTES:  %d\n",CRYPTO_PUBLICKEYBYTES);
++  printf("CRYPTO_CIPHERTEXTBYTES: %d\n",CRYPTO_CIPHERTEXTBYTES);
++
++  return 0;
++}
+diff --git a/AVX/test_speed.c b/AVX/test_speed.c
+new file mode 100644
+index 0000000..785fde5
+--- /dev/null
++++ b/AVX/test_speed.c
+@@ -0,0 +1,60 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "api.h"
++#include "SABER_indcpa.h"
++#include "cpucycles.h"
++#include "speed_print.h"
++
++#define NTESTS 10000
++
++uint64_t t[NTESTS];
++
++int main()
++{
++  unsigned int i;
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key[CRYPTO_BYTES];
++  uint8_t seed[CRYPTO_BYTES];
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    indcpa_kem_keypair(pk, sk);
++  }
++  print_results("indcpa_keypair: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    indcpa_kem_enc(key, seed, pk, ct);
++  }
++  print_results("indcpa_enc: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    indcpa_kem_dec(sk, ct, key);
++  }
++  print_results("indcpa_dec: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_keypair(pk, sk);
++  }
++  print_results("kem_keypair: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_enc(ct, key, pk);
++  }
++  print_results("kem_encaps: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_dec(key, ct, sk);
++  }
++  print_results("kem_decaps: ", t, NTESTS);
++
++  return 0;
++}

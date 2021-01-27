@@ -1,0 +1,334 @@
+diff --git a/crypto_kem/ntruhps4096821/avx2/Makefile b/crypto_kem/ntruhps4096821/avx2/Makefile
+index cb39c2a2..9d85aec0 100644
+--- a/crypto_kem/ntruhps4096821/avx2/Makefile
++++ b/crypto_kem/ntruhps4096821/avx2/Makefile
+@@ -1,12 +1,12 @@
+ # This Makefile can be used with GNU Make or BSD Make
+-
+ LIB=libntruhps4096821_avx2.a
+ HEADERS=api.h cmov.h crypto_sort_int32.h owcpa.h params.h poly.h poly_r2_inv.h sample.h 
+ OBJECTS=cmov.o crypto_sort_int32.o kem.o owcpa.o pack3.o packq.o poly.o poly_lift.o poly_r2_inv.o poly_s3_inv.o sample.o sample_iid.o  \
+         square_1_821_patience.o square_3_821_patience.o square_6_821_patience.o square_12_821_shufbytes.o square_24_821_shufbytes.o square_51_821_shufbytes.o square_102_821_shufbytes.o square_204_821_shufbytes.o square_408_821_shufbytes.o  \
+         poly_mod_3_Phi_n.o poly_mod_q_Phi_n.o poly_r2_mul.o poly_rq_mul.o poly_rq_to_s3.o  vec32_sample_iid.o
+ 
+-CFLAGS=-O3 -mavx2 -mbmi2 -Wall -Wextra -Wpedantic -Wvla -Werror -Wredundant-decls -Wmissing-prototypes -std=c99 -I../../../common $(EXTRAFLAGS)
++CFLAGS+=-O3 -march=native -mtune=native -flto -mavx2 -mbmi2 -Wall -Wextra -Wpedantic -Wvla -Wredundant-decls -Wmissing-prototypes -std=gnu99 -I../../../common $(EXTRAFLAGS)
++LDFLAGS+=-L../../../common -L../../../../ntt-polymul/avx2
+ 
+ all: $(LIB)
+ 
+@@ -19,6 +19,14 @@ all: $(LIB)
+ $(LIB): $(OBJECTS)
+ 	$(AR) -r $@ $(OBJECTS)
+ 
++test_kem: $(OBJECTS) test_kem.c
++	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) test_kem.c -lcommon -lntruhps821mul -o test_kem
++
++test_speed: $(OBJECTS) test_speed.c
++	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) test_speed.c -lcommon -lntruhps821mul -o test_speed
++
+ clean:
+ 	$(RM) $(OBJECTS)
+ 	$(RM) $(LIB)
++	$(RM) test_kem
++	$(RM) test_speed
+diff --git a/crypto_kem/ntruhps4096821/avx2/api.h b/crypto_kem/ntruhps4096821/avx2/api.h
+index 1aa6af6b..d5a6b82c 100644
+--- a/crypto_kem/ntruhps4096821/avx2/api.h
++++ b/crypto_kem/ntruhps4096821/avx2/api.h
+@@ -16,4 +16,12 @@ int PQCLEAN_NTRUHPS4096821_AVX2_crypto_kem_enc(uint8_t *c, uint8_t *k, const uin
+ 
+ int PQCLEAN_NTRUHPS4096821_AVX2_crypto_kem_dec(uint8_t *k, const uint8_t *c, const uint8_t *sk);
+ 
++#define CRYPTO_SECRETKEYBYTES PQCLEAN_NTRUHPS4096821_AVX2_CRYPTO_SECRETKEYBYTES
++#define CRYPTO_PUBLICKEYBYTES PQCLEAN_NTRUHPS4096821_AVX2_CRYPTO_PUBLICKEYBYTES
++#define CRYPTO_CIPHERTEXTBYTES PQCLEAN_NTRUHPS4096821_AVX2_CRYPTO_CIPHERTEXTBYTES
++#define CRYPTO_BYTES PQCLEAN_NTRUHPS4096821_AVX2_CRYPTO_BYTES
++#define crypto_kem_keypair PQCLEAN_NTRUHPS4096821_AVX2_crypto_kem_keypair
++#define crypto_kem_enc PQCLEAN_NTRUHPS4096821_AVX2_crypto_kem_enc
++#define crypto_kem_dec PQCLEAN_NTRUHPS4096821_AVX2_crypto_kem_dec
++
+ #endif
+diff --git a/crypto_kem/ntruhps4096821/avx2/owcpa.c b/crypto_kem/ntruhps4096821/avx2/owcpa.c
+index 6a73b097..bc577c67 100644
+--- a/crypto_kem/ntruhps4096821/avx2/owcpa.c
++++ b/crypto_kem/ntruhps4096821/avx2/owcpa.c
+@@ -84,16 +84,31 @@ void PQCLEAN_NTRUHPS4096821_AVX2_owcpa_keypair(unsigned char *pk,
+         g->coeffs[i] = 3 * g->coeffs[i];
+     }
+ 
++#if NTTMUL
++    nttmul_poly_mul(gf, g, f);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(gf, g, f);
++#endif
+ 
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_inv(invgf, gf);
+ 
++#if NTTMUL
++    nttmul_poly_mul(tmp, invgf, f);
++    nttmul_poly_mul(invh, tmp, f);
++    PQCLEAN_NTRUHPS4096821_AVX2_poly_mod_q_Phi_n(invh);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(tmp, invgf, f);
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Sq_mul(invh, tmp, f);
++#endif
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Sq_tobytes(sk + 2 * NTRU_PACK_TRINARY_BYTES, invh);
+ 
++#if NTTMUL
++    nttmul_poly_mul(tmp, invgf, g);
++    nttmul_poly_mul(h, tmp, g);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(tmp, invgf, g);
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(h, tmp, g);
++#endif
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_sum_zero_tobytes(pk, h);
+ }
+ 
+@@ -109,7 +124,11 @@ void PQCLEAN_NTRUHPS4096821_AVX2_owcpa_enc(unsigned char *c,
+ 
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_sum_zero_frombytes(h, pk);
+ 
++#if NTTMUL
++    nttmul_poly_mul(ct, h, r);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(ct, r, h);
++#endif
+ 
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_lift(liftm, m);
+     for (i = 0; i < NTRU_N; i++) {
+@@ -135,11 +154,20 @@ int PQCLEAN_NTRUHPS4096821_AVX2_owcpa_dec(unsigned char *rm,
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_S3_frombytes(f, secretkey);
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Z3_to_Zq(f);
+ 
++#if NTTMUL
++    nttmul_poly_mul(cf, c, f);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_mul(cf, c, f);
++#endif
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_Rq_to_S3(mf, cf);
+ 
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_S3_frombytes(finv3, secretkey + NTRU_PACK_TRINARY_BYTES);
++#if NTTMUL
++    nttmul_poly_mul(m, mf, finv3);
++    PQCLEAN_NTRUHPS4096821_AVX2_poly_mod_3_Phi_n(m);
++#else
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_S3_mul(m, mf, finv3);
++#endif
+     PQCLEAN_NTRUHPS4096821_AVX2_poly_S3_tobytes(rm + NTRU_PACK_TRINARY_BYTES, m);
+ 
+     fail = 0;
+diff --git a/crypto_kem/ntruhps4096821/avx2/owcpa.h b/crypto_kem/ntruhps4096821/avx2/owcpa.h
+index 2640ac5f..f98b2e0a 100644
+--- a/crypto_kem/ntruhps4096821/avx2/owcpa.h
++++ b/crypto_kem/ntruhps4096821/avx2/owcpa.h
+@@ -19,4 +19,9 @@ void PQCLEAN_NTRUHPS4096821_AVX2_owcpa_enc(unsigned char *c,
+ int PQCLEAN_NTRUHPS4096821_AVX2_owcpa_dec(unsigned char *rm,
+         const unsigned char *ciphertext,
+         const unsigned char *secretkey);
++
++#define owcpa_keypair PQCLEAN_NTRUHPS4096821_AVX2_owcpa_keypair
++#define owcpa_enc PQCLEAN_NTRUHPS4096821_AVX2_owcpa_enc
++#define owcpa_dec PQCLEAN_NTRUHPS4096821_AVX2_owcpa_dec
++
+ #endif
+diff --git a/crypto_kem/ntruhps4096821/avx2/poly.h b/crypto_kem/ntruhps4096821/avx2/poly.h
+index c904137a..11c9d925 100644
+--- a/crypto_kem/ntruhps4096821/avx2/poly.h
++++ b/crypto_kem/ntruhps4096821/avx2/poly.h
+@@ -38,4 +38,6 @@ void PQCLEAN_NTRUHPS4096821_AVX2_poly_S3_inv(poly *r, const poly *a);
+ void PQCLEAN_NTRUHPS4096821_AVX2_poly_Z3_to_Zq(poly *r);
+ void PQCLEAN_NTRUHPS4096821_AVX2_poly_trinary_Zq_to_Z3(poly *r);
+ 
++void nttmul_poly_mul(poly *r, const poly *a, const poly *b);
++
+ #endif
+diff --git a/crypto_kem/ntruhps4096821/avx2/test_kem.c b/crypto_kem/ntruhps4096821/avx2/test_kem.c
+new file mode 100644
+index 00000000..8814809d
+--- /dev/null
++++ b/crypto_kem/ntruhps4096821/avx2/test_kem.c
+@@ -0,0 +1,115 @@
++#include <stddef.h>
++#include <stdio.h>
++#include <string.h>
++#include "api.h"
++#include "randombytes.h"
++
++#define NTESTS 1000
++
++static int test_keys()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR keys\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_sk_a()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Replace secret key with random values
++  randombytes(sk, CRYPTO_SECRETKEYBYTES);
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid sk\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++static int test_invalid_ciphertext()
++{
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key_a[CRYPTO_BYTES];
++  uint8_t key_b[CRYPTO_BYTES];
++  uint8_t b;
++  size_t pos;
++
++  do {
++    randombytes(&b, sizeof(uint8_t));
++  } while(!b);
++  randombytes((uint8_t *)&pos, sizeof(size_t));
++
++  //Alice generates a public key
++  crypto_kem_keypair(pk, sk);
++
++  //Bob derives a secret key and creates a response
++  crypto_kem_enc(ct, key_b, pk);
++
++  //Change some byte in the ciphertext (i.e., encapsulated key)
++  ct[pos % CRYPTO_CIPHERTEXTBYTES] ^= b;
++
++  //Alice uses Bobs response to get her shared key
++  crypto_kem_dec(key_a, ct, sk);
++
++  if(!memcmp(key_a, key_b, CRYPTO_BYTES)) {
++    printf("ERROR invalid ciphertext\n");
++    return 1;
++  }
++
++  return 0;
++}
++
++int main(void)
++{
++  unsigned int i;
++  int r;
++
++  for(i=0;i<NTESTS;i++) {
++    r  = test_keys();
++    r |= test_invalid_sk_a();
++    r |= test_invalid_ciphertext();
++    if(r)
++      return 1;
++  }
++
++  printf("CRYPTO_SECRETKEYBYTES:  %d\n",CRYPTO_SECRETKEYBYTES);
++  printf("CRYPTO_PUBLICKEYBYTES:  %d\n",CRYPTO_PUBLICKEYBYTES);
++  printf("CRYPTO_CIPHERTEXTBYTES: %d\n",CRYPTO_CIPHERTEXTBYTES);
++
++  return 0;
++}
+diff --git a/crypto_kem/ntruhps4096821/avx2/test_speed.c b/crypto_kem/ntruhps4096821/avx2/test_speed.c
+new file mode 100644
+index 00000000..ab3bfa79
+--- /dev/null
++++ b/crypto_kem/ntruhps4096821/avx2/test_speed.c
+@@ -0,0 +1,62 @@
++#include <stddef.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "api.h"
++#include "owcpa.h"
++#include "poly.h"
++#include "cpucycles.h"
++#include "speed_print.h"
++
++#define NTESTS 10000
++
++uint64_t t[NTESTS];
++
++int main()
++{
++  unsigned int i;
++  uint8_t pk[CRYPTO_PUBLICKEYBYTES];
++  uint8_t sk[CRYPTO_SECRETKEYBYTES];
++  uint8_t ct[CRYPTO_CIPHERTEXTBYTES];
++  uint8_t key[CRYPTO_BYTES];
++  uint8_t seed[CRYPTO_BYTES];
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    owcpa_keypair(pk, sk, seed);
++  }
++  print_results("indcpa_keypair: ", t, NTESTS);
++
++  poly r, m;
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    owcpa_enc(ct, &r, &m, pk);
++  }
++  print_results("indcpa_enc: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    owcpa_dec(key, ct, sk);
++  }
++  print_results("indcpa_dec: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_keypair(pk, sk);
++  }
++  print_results("kem_keypair: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_enc(ct, key, pk);
++  }
++  print_results("kem_encaps: ", t, NTESTS);
++
++  for(i=0;i<NTESTS;i++) {
++    t[i] = cpucycles();
++    crypto_kem_dec(key, ct, sk);
++  }
++  print_results("kem_decaps: ", t, NTESTS);
++
++  return 0;
++}
