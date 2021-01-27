@@ -198,6 +198,8 @@ fqmulprecomp	1,2,11,x=10,neg=1
 
 fqmulprecomp	12,13,3,x=10  // extra reduction
 fqmulprecomp	12,13,4,x=10  // extra reduction
+fqmulprecomp	12,13,6,x=10  // extra reduction
+fqmulprecomp	12,13,8,x=10  // extra reduction
 
 /* level6 */
 update		10,3,5,6,9,4,7,8,11

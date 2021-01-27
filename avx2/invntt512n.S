@@ -79,6 +79,11 @@ vpshufb		%ymm15,%ymm1,%ymm1
 vpshufb		%ymm15,%ymm2,%ymm2
 fqmulprecomp	1,2,11,x=10,neg=1
 
+fqmulprecomp	12,13,3,x=10  // extra reduction
+fqmulprecomp	12,13,4,x=10 // extra reduction
+fqmulprecomp	12,13,6,x=10  // extra reduction
+fqmulprecomp	12,13,8,x=10  // extra reduction
+
 pack		3,5,10,5
 pack		4,7,3,7
 pack		6,9,4,9
@@ -107,11 +112,6 @@ vpbroadcastd	(_ZETAS+64-8*\off-8)*2(%rdx),%ymm2
 vpshufb		%ymm15,%ymm1,%ymm1
 vpshufb		%ymm15,%ymm2,%ymm2
 fqmulprecomp	1,2,11,x=6,neg=1
-
-fqmulprecomp	12,13,8,x=6  // extra reduction
-fqmulprecomp	12,13,10,x=6  // extra reduction
-fqmulprecomp	12,13,3,x=6  // extra reduction
-fqmulprecomp	12,13,4,x=6  // extra reduction
 
 pack		8,5,6,5
 pack		10,7,8,7
@@ -152,6 +152,11 @@ vpbroadcastw	(_ZETAS_PINV+32-4*\off-4)*2(%rdx),%ymm1
 vpbroadcastw	(_ZETAS+32-4*\off-4)*2(%rdx),%ymm2
 fqmulprecomp	1,2,11,x=3,neg=1
 
+fqmulprecomp	12,13,4,x=3  // extra reduction
+fqmulprecomp	12,13,6,x=3  // extra reduction
+fqmulprecomp	12,13,8,x=3  // extra reduction
+fqmulprecomp	12,13,10,x=3  // extra reduction
+
 /* level 4 */
 update		3,4,5,8,9,6,7,10,11
 
@@ -164,11 +169,6 @@ vpbroadcastw	(_ZETAS+16-2*\off-2)*2(%rdx),%ymm2
 fqmulprecomp	1,2,10,x=9,neg=1
 fqmulprecomp	1,2,11,x=9,neg=1
 
-fqmulprecomp	12,13,3,x=9  // extra reduction
-fqmulprecomp	12,13,4,x=9  // extra reduction
-fqmulprecomp	12,13,5,x=9  // extra reduction
-fqmulprecomp	12,13,8,x=9  // extra reduction
-
 /* level 5 */
 update		9,3,4,6,7,5,8,10,11
 
@@ -178,6 +178,11 @@ fqmulprecomp	1,2,5,x=7,neg=1
 fqmulprecomp	1,2,8,x=7,neg=1
 fqmulprecomp	1,2,10,x=7,neg=1
 fqmulprecomp	1,2,11,x=7,neg=1
+
+fqmulprecomp	12,13,9,x=7  // extra reduction
+fqmulprecomp	12,13,3,x=7  // extra reduction
+fqmulprecomp	12,13,4,x=7  // extra reduction
+fqmulprecomp	12,13,6,x=7  // extra reduction
 
 vmovdqa		%ymm9,(128*\off+  0)*2(%rdi)
 vmovdqa		%ymm3,(128*\off+ 16)*2(%rdi)
