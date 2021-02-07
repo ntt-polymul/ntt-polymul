@@ -6,9 +6,11 @@ int gen_a(uint8_t *a,  const uint8_t *seed);
 int gen_e(uint8_t *e, uint8_t *seed);
 int gen_r(uint8_t *r, uint8_t *seed);
 
+// for poly_mul and poly_aff
+int mul_core(const uint8_t *a, const uint8_t *s, uint8_t *my_ans);
 // poly_mul  b=[as]
-int poly_mul(const uint8_t *a, const uint8_t *s, uint8_t *b, unsigned int  vec_num);
-// poly_aff  b=as+e 
+int poly_mul(const uint8_t *a, const uint8_t *s, uint8_t *b);
+// poly_aff  b=as+e
 int poly_aff(const uint8_t *a, const  uint8_t *s, uint8_t *e, uint8_t *b, unsigned int vec_num);
 // compress: cut the low 4bit
 int poly_compress(const uint8_t *in,  uint8_t *out, const unsigned int vec_num);

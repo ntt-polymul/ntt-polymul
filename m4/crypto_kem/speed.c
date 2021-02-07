@@ -204,7 +204,7 @@ int main(void)
     gen_r(s, seed);
 
     t0 = hal_get_time();
-    poly_mul(a, s, b, DIM_N);
+    poly_mul(a, s, b);
     t1 = hal_get_time();
     printcycles("polymul cycles:", t1-t0);
 
