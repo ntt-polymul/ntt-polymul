@@ -27,6 +27,9 @@
 .syntax unified
 .cpu cortex-m4
 
+// Implement convolution over x^{509} - 1
+// with a straightforward 1024-NTT approach.
+// NTT-related assembly code is all here
 .align 2
 .global NTT_1024
 .type NTT_1024, %function

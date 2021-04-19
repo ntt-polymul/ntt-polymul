@@ -13,6 +13,8 @@ extern void __asm_mul3x3(int *_NTT_array1, int *_NTT_array2, int _MOD, int _Mpri
 extern void __asm_inv_NTT_6layers(int *_NTT_array1, int _MOD, int _Mprime, const int *_inv_root_table);
 extern void NTT_9_inv(int *_NTT_array1);
 extern void final_pack(int *_NTT_array1, uint16_t *res_coeffs);
+
+// mixed-radix 1728-NTT, see Algorithm 12 in the paper
 void mixed_radix_NTT_mul_864(uint16_t *res_coeffs, const uint16_t *small_coeffs, const uint16_t *big_coeffs){
     static int NTT_array1[9 * 192];
     static int NTT_array2[9 * 192];

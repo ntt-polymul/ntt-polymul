@@ -74,7 +74,6 @@ void poly_SignedZ3_Sq_mul(poly *r, const poly *a, const poly *b) {
     }
 }
 
-extern void gf_polymul_768x768_mod3(uint8_t *h, const uint8_t *c, const uint8_t *f);
 void poly_S3_mul(poly *r, const poly *a, const poly *b) {
 
     int k;
@@ -83,26 +82,6 @@ void poly_S3_mul(poly *r, const poly *a, const poly *b) {
     for (k = 0; k < NTRU_N; k++) {
         r->coeffs[k] = mod3(r->coeffs[k] + 2 * r->coeffs[NTRU_N - 1]);
     }
-
-    // uint8_t tmp_r[1024], tmp_a[1024], tmp_b[1024];
-    // for(int i = 0; i < NTRU_N; i++){
-    //     tmp_a[i] = a->coeffs[i] & 0xff;
-    //     tmp_b[i] = b->coeffs[i] & 0xff;
-    // }
-
-    // for(int i = NTRU_N; i < 768; i++){
-    //     tmp_a[i] = tmp_b[i] = 0;
-    // }
-
-    // gf_polymul_768x768_mod3(tmp_r, tmp_a, tmp_b);
-
-    // for(int i = 1535; i >= NTRU_N; i--){
-    //     tmp_r[i - NTRU_N] = tmp_r[i] + tmp_r[i - NTRU_N];
-    // }
-
-    // for(int i = 0; i < NTRU_N; i++){
-    //     r->coeffs[i] = mod3((uint16_t) (tmp_r[i] + 2 * tmp_r[NTRU_N - 1]));
-    // }
 }
 
 void poly_Rq_mul_x_minus_1(poly *r, const poly *a) {

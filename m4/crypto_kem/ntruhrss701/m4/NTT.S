@@ -14,10 +14,30 @@
 .syntax unified
 .cpu cortex-m4
 
-// the following refers to Good's permutation,
+// ================
+// The following refers to Good's permutation,
 // there are different strategies for implementing the trick
-// we suggest to refer the Algorithms in the paper
-// deal with this stuff
+// we suggest to refer to
+// Algorithm 13 in the paper, and
+// Sections 3.1 and 4.1, and Firgure 2 in paper
+// 'Polynomial Multiplication in NTRU Prime'
+// The assembly programs are only slightly different because
+// 1. The small polynomial is stored in different format:
+//    For NTRU Prime, small polynomial is stored in a 1-byte array.
+//    For NTRU, small polynomial is stored in a 2-byte array.
+// 2. The length of polynomial is different:
+//    p = 761 for {sntrup, ntrulpr}761,
+//    p = 701 for ntruhrss701,
+//    p = 677 for ntruhps2048677.
+// 3. The sign of big polynomial is different:
+//    For NTRU Prime, the polynomials are signed polynomials
+//    while computing polynomial multiplication.
+//    For NTRU, we modify the lifting from Z3 to Zq with lifting from Z3 to signed Zq
+//    so the small polynomial is now signed,
+//    however, the big polynomial is still unsigned, so we need
+//    put them as signed during polynomial multiplication.
+// ================
+// 3-layer-CT-butterfly with Good's trick on a 2-byte array
 // (1026,   -1,  258,   -1,   -1,  642,   -1,   -1)
 // (  -1,  132, 1284,   -1,  516,   -1,   -1,  900)
 // (   6, 1158,   -1,  390,   -1,   -1,  774,   -1)
