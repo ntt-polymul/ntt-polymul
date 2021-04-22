@@ -147,6 +147,8 @@ static void poly_mul_modp(int32_t *bounds, const int16_t *pdata) {
 }
 
 static void crt(int32_t *bounds2, const int32_t *bounds0, const int32_t *bounds1) {
+  // first input is reduced, i.e., bounds0 does not matter.
+  (void) bounds0;
   int32_t i,t,u;
 
   for(i=0;i<2*KEM_N;i++) {
