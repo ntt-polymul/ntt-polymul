@@ -5,7 +5,7 @@ This directory contains our multiplication implementations for the Saber, NTRU a
 For running the range analysis, you will need to install the Berkeley Database Libraries (libdb-dev).
 On Ubuntu/Debian, you can run
 ```
-sudo apt install dibdb-dev
+sudo apt install libdb-dev
 ```
 
 The remainder of the source code in this directory is self-contained and does not require any external libraries. Just 
