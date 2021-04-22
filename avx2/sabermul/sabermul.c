@@ -97,9 +97,6 @@ void saber_iprod(poly *r, const polyvec *a, const polyvec *v) {
     for(k=0;k<KEM_N/16;k++)
       a1_avx_combined[0][i][k] = _mm256_loadu_si256((__m256i const *)&a->vec[i].coeffs[k*16]);
 
-  //for(j=0;j<NUM_POLY;j++)
-  //  TC_eval(sk_avx[j], b_bucket[j]);
-
   for(i=0;i<NUM_POLY;i++) {
     toom_cook_4way_avx_n1(a1_avx_combined[0][i], b_bucket[i], c_bucket, i);
     TC_interpol(c_bucket, res_avx[0]);

@@ -181,24 +181,6 @@ static void invntt3(int32_t *bounds, int32_t n, const int16_t *pdata) {
   }
 }
 
-/*
-static void invntt_negacyclic(int32_t *bounds, int32_t n, const int16_t *pdata) {
-  int32_t i,j,k,l;
-  int16_t zeta;
-
-  i = 6;
-  for(l=n/8;l<=n/2;l*=2) {
-    for(j=0;j<n/(2*l);j++) {
-      zeta = pdata[_ZETAS+2*i--];
-      for(k=2*l*j;k<2*l*j+l;k++) {
-        bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
-        bounds[l+k] = maxmulmod(bounds[l+k],zeta,pdata);
-      }
-    }
-  }
-}
-*/
-
 static void basemul(int32_t *bounds, const int16_t *pdata) {
   int32_t i, t[5], x, y, z;
 
@@ -266,8 +248,6 @@ static void poly_mul_modp(int32_t *bounds, const int16_t *pdata) {
   for(i=0;i<NTT_N;i+=12)
     basemul(bounds+i,pdata);
 
-  //for(i=0;i<NTT_N;i++)
-  //  bounds[i] = maxmulmod((1<<15)*(p-1)/2,1,pdata);
 
   for(i=t=0;i<NTT_N;i++)
     t = max(bounds[i],t);

@@ -197,11 +197,6 @@ static void poly_mul_modp(int32_t *bounds, const int16_t *pdata) {
   for(i=0;i<NTT_N;i+=24)
     basemul(bounds+i,pdata);
 
-  //for(i=0;i<NTT_N;i++) {
-  //  int16_t p = pdata[_16XP];
-  //  bounds[i] = maxmulmod((1<<15)*(p-1)/2,1,pdata);
-  //}
-
   for(i=t=0;i<NTT_N;i++)
     t = max(bounds[i],t);
   printf("Maximum output coefficient basemul: %d\n",t);
