@@ -22,11 +22,12 @@ static void poly_naivemul(poly *c, const poly *a, const poly *b) {
 }
 
 int main(void) {
-  int i;
+  int i, err;
   uint16_t nonce = 0;
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a, b, c, d;
   nttpoly ahat, bhat, chat;
+  err =0;
 
   randombytes(seed,POLYMUL_SYMBYTES);
   poly_uniform(&a,seed,nonce++);
@@ -35,8 +36,10 @@ int main(void) {
   poly_naivemul(&c,&a,&b);
   orig_poly_mul(&d,&a,&b);
   for(i=0;i<KEM_N;i++)
-    if((c.coeffs[i] - d.coeffs[i]) % KEM_Q)
+    if((c.coeffs[i] - d.coeffs[i]) % KEM_Q) {
       printf("ERROR1: %d, %d, %d\n", i, c.coeffs[i], d.coeffs[i]);
+      err = 1;
+    }
 
   poly_ntt(&ahat,&a,PDATA0);
   poly_ntt(&bhat,&b,PDATA0);
@@ -48,8 +51,12 @@ int main(void) {
   poly_invntt_tomont(&bhat,&bhat,PDATA1);
   poly_crt(&d,&ahat,&bhat);
   for(i=0;i<KEM_N;i++)
-    if((c.coeffs[i] - d.coeffs[i]) % KEM_Q)
+    if((c.coeffs[i] - d.coeffs[i]) % KEM_Q) {
       printf("ERROR2: %d, %d, %d\n", i, c.coeffs[i], d.coeffs[i]);
+      err = 1;
+    }
+
+  if(!err) printf("ALL GOOD.\n");
 
   return 0;
 }

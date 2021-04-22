@@ -20,7 +20,7 @@ static void poly_naivemul(poly *c, const poly *a, const poly *b) {
 }
 
 int main(void) {
-  int j;
+  int j, err;
   uint16_t nonce = 0;
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a, b, c;
@@ -37,9 +37,12 @@ int main(void) {
   poly_basemul_montgomery(&ahat,&ahat,&bhat,PDATA);
   poly_invntt_tomont(&ahat,&ahat,PDATA);
 
+  err = 0;
   for(j=0;j<KEM_N;j++)
-    if((c.coeffs[j] - ahat.coeffs[j]) % P)
+    if((c.coeffs[j] - ahat.coeffs[j]) % P) {
       printf("ERROR: %d, %d, %d\n", j, c.coeffs[j], ahat.coeffs[j]);
-
+      err = 1;
+    }
+  if(!err) printf("ALL GOOD.\n");
   return 0;
 }

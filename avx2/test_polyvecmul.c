@@ -18,12 +18,13 @@ static void poly_naivemul(poly *c, const poly *a, const poly *b) {
 }
 
 int main(void) {
-  int i,j;
+  int i,j,err;
   uint16_t nonce = 0;
   uint8_t seed[POLYMUL_SYMBYTES];
   polyvec a[KEM_K];
   polyvec s, t, u;
   poly tmp;
+  err = 0;
 
   randombytes(seed,POLYMUL_SYMBYTES);
   for(i=0;i<KEM_K;i++)
@@ -41,14 +42,19 @@ int main(void) {
   saber_matrix_vector_mul(&u,a,&s);
   for(i=0;i<KEM_K;i++)
     for(j=0;j<KEM_N;j++)
-      if((u.vec[i].coeffs[j] - t.vec[i].coeffs[j]) % KEM_Q)
+      if((u.vec[i].coeffs[j] - t.vec[i].coeffs[j]) % KEM_Q) {
         printf("ERROR1: %d, %d, %d, %d\n", i, j, t.vec[i].coeffs[j], u.vec[i].coeffs[j]);
+        err = 1;
+      }
 
   polyvec_matrix_vector_mul(&u,a,&s,0);
   for(i=0;i<KEM_K;i++)
     for(j=0;j<KEM_N;j++)
-      if((u.vec[i].coeffs[j] - t.vec[i].coeffs[j]) % KEM_Q)
+      if((u.vec[i].coeffs[j] - t.vec[i].coeffs[j]) % KEM_Q) {
         printf("ERROR2: %d, %d, %d, %d\n", i, j, t.vec[i].coeffs[j], u.vec[i].coeffs[j]);
+        err = 1;
+      }
+  if(!err) printf("ALL GOOD.\n");
 
   return 0;
 }

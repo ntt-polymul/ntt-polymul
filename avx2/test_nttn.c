@@ -75,12 +75,13 @@ static int16_t zeta[NTT_N/F];
 static int16_t zetapow[NTT_N/F][POLY_N/F];
 
 int main(void) {
-  int i,j;
+  int i,j, err;
   uint64_t t[20], overhead;
   int16_t out[NTT_N/F];
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a;
   nttpoly b;
+  err = 0;
 
   overhead = cpucycles_overhead();
   randombytes(seed,POLYMUL_SYMBYTES);
@@ -91,11 +92,15 @@ int main(void) {
   poly_ntt(&b,&a,PDATA);
   for(i=0;i<NTT_N/F;i++) {
     zeta[i] = b.coeffs[idx(F*i)] % P;
-    if((pow_simple(zeta[i],NTT_N/F) + 1) % P)
+    if((pow_simple(zeta[i],NTT_N/F) + 1) % P) {
       fprintf(stderr, "ERROR1: %d, %d\n", F*i, zeta[i]);
+      err = 1;
+    }
     for(j=0;j<i;j++)
-      if((zeta[j] - zeta[i]) % P == 0)
+      if((zeta[j] - zeta[i]) % P == 0) {
         fprintf(stderr, "ERROR2: %d, %d, %d, %d\n", F*i, F*j, zeta[i], zeta[j]);
+        err = 1;
+      }
   }
 
   for(i=0;i<NTT_N/F;i++)
@@ -108,8 +113,10 @@ int main(void) {
     a.coeffs[F*i] = 1;
     poly_ntt(&b,&a,PDATA);
     for(j=0;j<NTT_N/F;j++)
-      if((b.coeffs[idx(F*j)] - zetapow[j][i]) % P)
+      if((b.coeffs[idx(F*j)] - zetapow[j][i]) % P) {
         fprintf(stderr,"ERROR3: %d, %d, %d %d\n", i, j, b.coeffs[idx(F*j)], zetapow[j][i]);
+        err = 1;
+      }
   }
 
   poly_uniform(&a,seed,0);
@@ -120,8 +127,10 @@ int main(void) {
   }
   poly_ntt(&b,&a,PDATA);
   for(i=0;i<NTT_N/F;i++)
-    if((b.coeffs[idx(F*i)] - out[i]) % P)
+    if((b.coeffs[idx(F*i)] - out[i]) % P) {
       fprintf(stderr,"ERROR4: %d, %d %d\n", i, b.coeffs[idx(F*i)], out[i]);
+      err = 1;
+    }
 
   poly_uniform(&a,seed,1);
   poly_ntt(&b,&a,PDATA);
@@ -134,11 +143,17 @@ int main(void) {
     if(b.coeffs[i] < -(P-1)/2) b.coeffs[i] += P;
   poly_invntt_tomont(&b,&b,PDATA);
   for(i=0;i<KEM_N;++i)
-    if((a.coeffs[i] - b.coeffs[i]) % P)
+    if((a.coeffs[i] - b.coeffs[i]) % P) {
       fprintf(stderr, "ERROR5: %d, %d, %d\n", i, a.coeffs[i], b.coeffs[i]);
+      err = 1;
+    }
   for(i=KEM_N;i<NTT_N;++i)
-    if(b.coeffs[i] % P) fprintf(stderr, "ERROR6: %d, %d \n", i, b.coeffs[i]);
+    if(b.coeffs[i] % P) {
+      fprintf(stderr, "ERROR6: %d, %d \n", i, b.coeffs[i]);
+      err = 1;
+    }
 
+  if(!err) printf("ALL GOOD.\n");
   return 0;
 
   for(i=0;i<20;i++) {
