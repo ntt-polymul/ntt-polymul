@@ -10,9 +10,11 @@
 #include "poly.h"
 #include "consts.h"
 
+#define ITERATIONS 100
+
 int main(void) {
   int k;
-  uint64_t tsc[100];
+  uint64_t tsc[ITERATIONS];
   poly a, b, c;
   nttpoly ahat, bhat, chat;
 
@@ -23,57 +25,57 @@ int main(void) {
   polyvec mat[KEM_K];
   polyvec s, t;
   nttpolyvec mhat0[KEM_K], mhat1[KEM_K], shat0, shat1, that0, that1;
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     saber_matrix_vector_mul(&t,mat,&s);
   }
-  print_results("saber_matrix_vector_mul:",tsc,100);
-  for(k=0;k<100;k++) {
+  print_results("saber_matrix_vector_mul:",tsc,ITERATIONS);
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     saber_iprod(&a,&t,&s);
   }
-  print_results("saber_iprod:",tsc,100);
+  print_results("saber_iprod:",tsc,ITERATIONS);
 #else
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     orig_poly_mul(&c,&a,&b);
   }
-  print_results("ntru_poly_mul:",tsc,100);
+  print_results("ntru_poly_mul:",tsc,ITERATIONS);
 #endif
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     poly_ntt(&ahat,&a,PDATA0);
   }
-  print_results("poly_ntt:",tsc,100);
+  print_results("poly_ntt:",tsc,ITERATIONS);
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     poly_invntt_tomont(&ahat,&ahat,PDATA0);
   }
-  print_results("poly_invntt_tomont:",tsc,100);
+  print_results("poly_invntt_tomont:",tsc,ITERATIONS);
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     poly_basemul_montgomery(&ahat,&ahat,&bhat,PDATA0);
   }
-  print_results("poly_basemul_montgomery:",tsc,100);
+  print_results("poly_basemul_montgomery:",tsc,ITERATIONS);
 
 #ifdef KEM_K
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     polyvec_basemul_acc_montgomery(&ahat,&shat0,&that0,PDATA0);
   }
-  print_results("polyvec_basemul_acc_montgomery:",tsc,100);
+  print_results("polyvec_basemul_acc_montgomery:",tsc,ITERATIONS);
 #endif
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     poly_crt(&a,&ahat,&bhat);
   }
-  print_results("poly_crt:",tsc,100);
+  print_results("poly_crt:",tsc,ITERATIONS);
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     poly_ntt(&ahat,&a,PDATA0);
     poly_ntt(&bhat,&b,PDATA0);
@@ -85,10 +87,10 @@ int main(void) {
     poly_invntt_tomont(&bhat,&bhat,PDATA1);
     poly_crt(&c,&ahat,&bhat);
   }
-  print_results("ntt-based poly_mul:",tsc,100);
+  print_results("ntt-based poly_mul:",tsc,ITERATIONS);
 
 #ifdef KEM_K
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     int i;
     for(i=0;i<KEM_K;i++)
@@ -107,13 +109,13 @@ int main(void) {
     polyvec_invntt_tomont(&that0,&that0,PDATA0);
     polyvec_crt(&t,&that0,&that1);
   }
-  print_results("polyvec_matrix_vector_mul:",tsc,100);
+  print_results("polyvec_matrix_vector_mul:",tsc,ITERATIONS);
 
-  for(k=0;k<100;k++) {
+  for(k=0;k<ITERATIONS;k++) {
     tsc[k] = cpucycles();
     polyvec_iprod(&a,&t,&s);
   }
-  print_results("polyvec_iprod:",tsc,100);
+  print_results("polyvec_iprod:",tsc,ITERATIONS);
 #endif
 
   return 0;
