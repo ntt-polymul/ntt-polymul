@@ -37,3 +37,4 @@ test_sabermul
 test_firesabermul
 test_lac128mul
 test_lac192mul
+test_lac256mul

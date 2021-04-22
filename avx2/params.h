@@ -42,6 +42,13 @@
 #define POLY_N 1024
 #define NTT_N 1024
 #define KEM_Q 256
+#elif defined(LAC256)
+//#define POLYMUL_NAMESPACE(s) lac256mul##s
+#define NEGACYCLIC
+#define KEM_N 1024
+#define POLY_N 1024
+#define NTT_N 1024
+#define KEM_Q 256
 #elif defined(LIGHTSABER)
 //#define POLYMUL_NAMESPACE(s) lightsabermul##s
 #define NEGACYCLIC

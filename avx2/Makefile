@@ -58,7 +58,8 @@ all: \
   test_sabermul \
   test_firesabermul \
   test_lac128mul \
-  test_lac192mul
+  test_lac192mul \
+  test_lac256mul
 
 lib: \
   libntruhps509mul.a \
@@ -69,7 +70,8 @@ lib: \
   libsabermul.a \
   libfiresabermul.a \
   liblac128mul.a \
-  liblac192mul.a
+  liblac192mul.a \
+  liblac256mul.a
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -125,6 +127,9 @@ poly_lac128.o: poly.c $(HEADERS)
 poly_lac192.o: poly.c $(HEADERS)
 	$(CC) $(CFLAGS) -DLAC192 -c -o $@ $<
 
+poly_lac256.o: poly.c $(HEADERS)
+	$(CC) $(CFLAGS) -DLAC256 -c -o $@ $<
+
 polyvec_lightsaber.o: polyvec.c $(HEADERS)
 	$(CC) $(CFLAGS) -DLIGHTSABER -c -o $@ $<
 
@@ -177,6 +182,9 @@ liblac128mul.a: poly_lac128.o $(OBJECTS512N)
 	$(AR) -r $@ $^
 
 liblac192mul.a: poly_lac192.o $(OBJECTS1024N)
+	$(AR) -r $@ $^
+
+liblac256mul.a: poly_lac256.o $(OBJECTS1024N)
 	$(AR) -r $@ $^
 
 test_ntt256n: $(SOURCES256N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
@@ -239,6 +247,9 @@ test_lac128mul: $(SOURCES512N) $(HEADERS) test_polymul.c lacmul/lacmul.c
 	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_polymul.c lacmul/lacmul.c -o $@
 
 test_lac192mul: $(SOURCES1024N) $(HEADERS) test_polymul.c lacmul/lacmul.c
+	$(CC) $(CFLAGS) $(SOURCES1024N) -DLAC192 test_polymul.c lacmul/lacmul.c -o $@
+
+test_lac256mul: $(SOURCES1024N) $(HEADERS) test_polymul.c lacmul/lacmul.c
 	$(CC) $(CFLAGS) $(SOURCES1024N) -DLAC192 test_polymul.c lacmul/lacmul.c -o $@
 
 test_speed256nx2: $(SOURCES256N) $(HEADERS) test_speed.c polyvec.c sabermul/lightsabermul.o cpucycles.c cpucycles.h speed_print.c speed_print.h
