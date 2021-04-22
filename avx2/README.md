@@ -1,7 +1,14 @@
 This directory contains our multiplication implementations for the Saber, NTRU and LAC KEMs, which are using 16-bit NTT strategies that are optimized for amd64 CPUs supporting the AVX2 instruction set. Also included are the upstream multipliers to compare performance.
 
 ## Build Instructions
-The source code in this directory is self-contained and does not require any external libraries. Just 
+
+For running the range analysis, you will need to install the Berkeley Database Libraries (libdb-dev).
+On Ubuntu/Debian, you can run
+```
+sudo apt install dibdb-dev
+```
+
+The remainder of the source code in this directory is self-contained and does not require any external libraries. Just 
 run `make` to build various test and benchmarking programs. The programs
 ``` 
 ./test_lightsabermul
