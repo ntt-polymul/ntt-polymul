@@ -1,4 +1,4 @@
-This directory contains our multiplication implementations for the Saber, NTRU and LAC KEMs, which are using 16-bit NTT strategies that are optimized for amd64 CPUs supporting the AVX2 instruction set. Also included are the upstream multipliers to compare performance.
+This directory contains our multiplication implementations for the Saber, NTRU and LAC KEMs, which are using 16-bit NTT strategies that are optimized for amd64 CPUs supporting the AVX2 instruction set. Also included are the upstream multipliers to compare performance. More precisely, the code in the subdirectories ``sabermul'', ``ntrumul'' and ``lacmul'' are copied from the official public-domain AVX2-optimized implementations of the Saber, NTRU and LAC KEM, respectively, that were submitted to the NIST PQC standardization process. On the other hand the code in the base directory constitutes our new multiplication code.
 
 ## Build Instructions
 
@@ -54,3 +54,6 @@ for LAC128, LAC192, and LAC256.
 
 ## Integration into the upstream KEM implementations
 Our multiplication implementations can be compiled into static libraries by running `make lib`. The global symbols of the libraries are namespaced and the upstream KEM sources can be linked against them. The sub-directory `patches/` contains patches for the upstream sources that integrate our multipliers.
+
+As an example, here is how to integrate our multiplier into Saber. The patch `patches/saber.patch` can be applied to the Saber implementation from the GitHub repository <https://github.com/KULeuven-COSIC/SABER>. It adds calls to our multiplication functions to the code. They are used instead of the original multiplication functions when the macro `NTTMUL` is defined. Also the patch adds souces for two simple testing and benchmarking programs and corresponding make targets for every parameter set: `test_lightsaber`, `test_lightsaberspeed`, `test_saber`, `test_saberspeed`, `test_firesaber`, and `test_firesaberspeed`. To compile these programs the static libraries `liblightsabermul.a`, `libsabermul.a`, and `libfiresabermul.a` from this repository must be copied to the Saber repository, or their location must be added to the search path for the compiler by setting the environment variable `LDFLAGS` accordingly. Then the test and benchmarking programs can be compiled such that our NTT-based multiplier is used by adding `-DNTTMUL` to the compiler flags in the `EXTRAFLAGS` variable before running make.
+
