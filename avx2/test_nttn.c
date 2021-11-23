@@ -16,8 +16,6 @@
 #define F 2
 #elif NTT_N == 1024
 #define F 4
-#else
-#define F 3
 #endif
 
 static int16_t pow_simple(int16_t a, unsigned int e) {

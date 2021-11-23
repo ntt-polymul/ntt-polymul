@@ -3,6 +3,7 @@
 *.so
 access.db
 test_ntt256n
+test_ntt256nrange
 test_basemul256n
 test_speed256nx2
 test_speed256nx3

@@ -190,6 +190,9 @@ liblac256mul.a: poly_lac256.o $(OBJECTS1024N)
 test_ntt256n: $(SOURCES256N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_nttn.c cpucycles.c -o $@
 
+test_ntt256nrange: $(SOURCES) $(HEADERS) test_nttn.c ntt256nrange.c consts256n7681.c consts256n10753.c cpucycles.c cpucycles.h
+	$(CC) $(CFLAGS) $(SOURCES) -DLIGHTSABER test_nttn.c ntt256nrange.c consts256n7681.c consts256n10753.c cpucycles.c -o $@ -ldb
+
 test_ntt512n: $(SOURCES512N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_nttn.c cpucycles.c -o $@
 
@@ -276,8 +279,8 @@ test_speed1536: $(SOURCES1536) $(HEADERS) test_speed.c ntrumul/ntruhrss701_poly_
 test_speed1728: $(SOURCES1728) $(HEADERS) test_speed.c ntrumul/ntruhps821_poly_mul.s cpucycles.c cpucycles.h speed_print.c speed_print.h
 	$(CC) $(CFLAGS) $(SOURCES1728) -DNTRUHPS821 test_speed.c ntrumul/ntruhps821_poly_mul.s cpucycles.c speed_print.c -o $@
 
-test_range256n: test_range256n.c consts256n7681.c consts256n10753.c consts256.h
-	$(CC) $(CFLAGS) -DFIRESABER test_range256n.c consts256n7681.c consts256n10753.c -o $@ -ldb
+test_range256n: test_range256n.c ntt256nrange.c consts256n7681.c consts256n10753.c consts256.h
+	$(CC) $(CFLAGS) -DFIRESABER test_range256n.c ntt256nrange.c consts256n7681.c consts256n10753.c -o $@ -ldb
 
 test_range512n: test_range512n.c consts512n7681.c consts512n10753.c consts512.h
 	$(CC) $(CFLAGS) -DLAC128 test_range512n.c consts512n7681.c consts512n10753.c -o $@ -ldb
