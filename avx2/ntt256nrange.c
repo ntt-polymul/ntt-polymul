@@ -8,7 +8,7 @@
 #include "consts256.h"
 #include "poly.h"
 
-void range_mul(uint32_t *bounds0, uint32_t *bounds1, const int16_t *mypdata);
+void range_mul(uint32_t *bounds0, uint32_t *bounds1);
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #define max(a,b) (((a) > (b)) ? (a) : (b))
@@ -379,15 +379,15 @@ static void basemul(int16_t *coeffs0, int16_t *coeffs1, uint32_t *bounds0, uint3
 static void crt(uint32_t *bounds2, const uint32_t *bounds0, const uint32_t *bounds1) {
   int32_t i,t,u;
 
-  for(i=0;i<KEM_N;i++) {
+  for(i=0;i<NTT_N;i++) {
     pdata = PDATA0;
     t = maxmulmod(bounds0[i],PDATA0[_16XMONT]);
     pdata = PDATA1;
     u = maxmulmod(bounds1[i] + t,CRT_U);
     u *= P0;
     bounds2[i] = t + u;
+    assert(bounds2[i] < P0*P1-5*4096*256*4);
   }
-  print_bounds(bounds2,"CRT");
 }
 
 void poly_ntt(nttpoly *r, const poly *a, const int16_t *mypdata) {
@@ -422,15 +422,32 @@ void poly_invntt_tomont(nttpoly *r, const nttpoly *a, const int16_t *mypdata) {
   btree->close(btree,0);
 }
 
-void range_mul(uint32_t *bounds0, uint32_t *bounds1, const int16_t *mypdata) {
+void range_mul(uint32_t *bounds0, uint32_t *bounds1) {
+  int32_t i;
   int16_t coeffs[NTT_N];
+  uint32_t bounds2[NTT_N], bounds3[NTT_N];
+
+  for(i=0;i<NTT_N;i++) {
+    bounds2[i] = bounds0[i];
+    bounds3[i] = bounds1[i];
+  }
 
   db_create(&btree, NULL, 0);
   btree->open(btree, NULL, "access.db", NULL, DB_BTREE, DB_CREATE, 0664);
-  pdata = mypdata;
+
+  pdata = PDATA0;
   ntt(coeffs,bounds0);
   ntt(coeffs,bounds1);
   basemul(coeffs,coeffs,bounds0,bounds1);
   invntt(coeffs,bounds0);
+
+  pdata = PDATA1;
+  ntt(coeffs,bounds2);
+  ntt(coeffs,bounds3);
+  basemul(coeffs,coeffs,bounds2,bounds3);
+  invntt(coeffs,bounds2);
+
+  crt(bounds0,bounds0,bounds2);
+
   btree->close(btree,0);
 }
