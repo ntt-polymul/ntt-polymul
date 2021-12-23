@@ -173,7 +173,7 @@ static void ntt3t5(int16_t *coeffs, uint32_t *bounds) {
         coeffs[l/2+k] = coeffs[k] - t;
         coeffs[k] = coeffs[k] + t;
 
-        if(j > 0 || l <= NTT_N/16) bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
+        if(i > 0 || l <= NTT_N/16) bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
         bounds[k] = bounds[l/2+k] = bounds[k] + bounds[l/2+k];
       }
     }

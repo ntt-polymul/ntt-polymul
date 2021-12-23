@@ -301,6 +301,7 @@ clean:
 	-$(RM) -rf *.o sabermul/*.o *.a *.so
 	-$(RM) -f access.db
 	-$(RM) -f test_ntt256n
+	-$(RM) -f test_ntt256nrange
 	-$(RM) -f test_basemul256n
 	-$(RM) -f test_speed256nx2
 	-$(RM) -f test_speed256nx3
