@@ -31,7 +31,9 @@ static int16_t pow_simple(int16_t a, unsigned int e) {
   return r;
 }
 
-#if NTT_N == 1024
+#ifdef SCALAR_NTT
+static int idx(int i) { return i; }
+#elif NTT_N == 1024
 static int idx(int i) {
   int r;
   r  = i/32*32;
@@ -70,15 +72,14 @@ static int16_t zeta[NTT_N/F];
 static int16_t zetapow[NTT_N/F][POLY_N/F];
 
 int main(void) {
-  int i,j, err;
-  uint64_t t[20], overhead;
+  int i,j,err=0;
+  //uint64_t t[20], overhead;
   int16_t out[NTT_N/F];
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a;
   nttpoly b;
-  err = 0;
 
-  overhead = cpucycles_overhead();
+  //overhead = cpucycles_overhead();
   randombytes(seed,POLYMUL_SYMBYTES);
 
   for(i=0;i<POLY_N;i++)
@@ -137,12 +138,12 @@ int main(void) {
   for(i=0;i<NTT_N;i++)
     if(b.coeffs[i] < -(P-1)/2) b.coeffs[i] += P;
   poly_invntt_tomont(&b,&b,PDATA);
-  for(i=0;i<KEM_N;++i)
+  for(i=0;i<KEM_N;i++)
     if((a.coeffs[i] - b.coeffs[i]) % P) {
       fprintf(stderr, "ERROR5: %d, %d, %d\n", i, a.coeffs[i], b.coeffs[i]);
       err = 1;
     }
-  for(i=KEM_N;i<NTT_N;++i)
+  for(i=KEM_N;i<NTT_N;i++)
     if(b.coeffs[i] % P) {
       fprintf(stderr, "ERROR6: %d, %d \n", i, b.coeffs[i]);
       err = 1;
@@ -151,6 +152,7 @@ int main(void) {
   if(!err) printf("ALL GOOD.\n");
   return 0;
 
+/*
   for(i=0;i<20;i++) {
     t[i] = cpucycles();
     poly_ntt(&b,&a,PDATA);
@@ -163,6 +165,5 @@ int main(void) {
   }
   for(i=0;i<19;i++)
     printf("invntt: %2d: %lu\n", i, t[i+1] - t[i] - overhead);
-
-  return 0;
+*/
 }

@@ -74,14 +74,14 @@ static int16_t zetapow[NTT_N/F][POLY_N/F];
 
 int main(void) {
   int i,j, err;
-  uint64_t t[20], overhead;
+  //uint64_t t[20], overhead;
   int16_t out[NTT_N/F];
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a;
   nttpoly b;
   err = 0;
 
-  overhead = cpucycles_overhead();
+  //overhead = cpucycles_overhead();
   randombytes(seed,POLYMUL_SYMBYTES);
 
   for(i=0;i<POLY_N;i++)
@@ -154,6 +154,7 @@ int main(void) {
   if(!err) printf("ALL GOOD.\n");
   return 0;
 
+/*
   for(i=0;i<20;i++) {
     t[i] = cpucycles();
     poly_ntt(&b,&a,PDATA);
@@ -166,6 +167,5 @@ int main(void) {
   }
   for(i=0;i<19;i++)
     printf("invntt: %2d: %lu\n", i, t[i+1] - t[i] - overhead);
-
-  return 0;
+*/
 }

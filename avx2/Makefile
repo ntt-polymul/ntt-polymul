@@ -27,6 +27,7 @@ OBJECTS1728 = $(OBJECTS) ntt1728.o invntt1728.o basemul576x3.o consts17283457.o 
 
 all: \
   test_ntt256n \
+  test_nttrange256n \
   test_basemul256n \
   test_speed256nx2 \
   test_speed256nx3 \
@@ -39,6 +40,7 @@ all: \
   test_basemul1024n \
   test_speed1024n \
   test_ntt1024 \
+  test_nttrange1024 \
   test_basemul1024 \
   test_speed1024 \
   test_range1024 \
@@ -190,8 +192,8 @@ liblac256mul.a: poly_lac256.o $(OBJECTS1024N)
 test_ntt256n: $(SOURCES256N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_nttn.c cpucycles.c -o $@
 
-test_ntt256nrange: $(SOURCES) $(HEADERS) test_nttn.c ntt256nrange.c consts256n7681.c consts256n10753.c cpucycles.c cpucycles.h
-	$(CC) $(CFLAGS) $(SOURCES) -DLIGHTSABER test_nttn.c ntt256nrange.c consts256n7681.c consts256n10753.c cpucycles.c -o $@ -ldb
+test_nttrange256n: $(SOURCES) $(HEADERS) test_nttn.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c nttrange.h
+	$(CC) $(CFLAGS) $(SOURCES) -DLIGHTSABER -DSCALAR_NTT test_nttn.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c -o $@ -ldb
 
 test_ntt512n: $(SOURCES512N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_nttn.c cpucycles.c -o $@
@@ -201,6 +203,9 @@ test_ntt1024n: $(SOURCES1024N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 
 test_ntt1024: $(SOURCES1024) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1024) -DNTRUHPS509 test_ntt.c cpucycles.c -o $@
+
+test_nttrange1024: $(SOURCES) $(HEADERS) test_ntt.c nttrange.c nttrange1024.c consts1024.c consts10247681.c consts102410753.c nttrange.h
+	$(CC) $(CFLAGS) $(SOURCES) -DNTRUHPS509 -DSCALAR_NTT test_ntt.c nttrange.c nttrange1024.c consts1024.c consts10247681.c consts102410753.c -o $@ -ldb
 
 test_ntt1536: $(SOURCES1536) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1536) -DNTRUHPS677 test_ntt.c cpucycles.c -o $@
@@ -279,8 +284,8 @@ test_speed1536: $(SOURCES1536) $(HEADERS) test_speed.c ntrumul/ntruhrss701_poly_
 test_speed1728: $(SOURCES1728) $(HEADERS) test_speed.c ntrumul/ntruhps821_poly_mul.s cpucycles.c cpucycles.h speed_print.c speed_print.h
 	$(CC) $(CFLAGS) $(SOURCES1728) -DNTRUHPS821 test_speed.c ntrumul/ntruhps821_poly_mul.s cpucycles.c speed_print.c -o $@
 
-test_range256n: test_range256n.c ntt256nrange.c consts256n7681.c consts256n10753.c consts256.h
-	$(CC) $(CFLAGS) -DFIRESABER test_range256n.c ntt256nrange.c consts256n7681.c consts256n10753.c -o $@ -ldb
+test_range256n: test_range256n.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c nttrange.h consts256.h
+	$(CC) $(CFLAGS) -DFIRESABER test_range256n.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c -o $@ -ldb
 
 test_range512n: test_range512n.c consts512n7681.c consts512n10753.c consts512.h
 	$(CC) $(CFLAGS) -DLAC128 test_range512n.c consts512n7681.c consts512n10753.c -o $@ -ldb
@@ -288,8 +293,8 @@ test_range512n: test_range512n.c consts512n7681.c consts512n10753.c consts512.h
 test_range1024n: test_range1024n.c consts1024n7681.c consts1024n10753.c consts1024.h
 	$(CC) $(CFLAGS) -DLAC192 test_range1024n.c consts1024n7681.c consts1024n10753.c -o $@ -ldb
 
-test_range1024: test_range1024.c consts10247681.c consts102410753.c consts1024.h
-	$(CC) $(CFLAGS) -DNTRUHPS509 test_range1024.c consts10247681.c consts102410753.c -o $@ -ldb
+test_range1024: test_range1024.c nttrange.c nttrange1024.c consts10247681.c consts102410753.c nttrange.h consts1024.h
+	$(CC) $(CFLAGS) -DNTRUHPS509 test_range1024.c nttrange.c nttrange1024.c consts10247681.c consts102410753.c -o $@ -ldb
 
 test_range1536: test_range1536.c consts15367681.c consts153610753.c consts1536.h
 	$(CC) $(CFLAGS) -DNTRUHPS677 test_range1536.c consts15367681.c consts153610753.c -o $@ -ldb
@@ -301,7 +306,7 @@ clean:
 	-$(RM) -rf *.o sabermul/*.o *.a *.so
 	-$(RM) -f access.db
 	-$(RM) -f test_ntt256n
-	-$(RM) -f test_ntt256nrange
+	-$(RM) -f test_nttrange256n
 	-$(RM) -f test_basemul256n
 	-$(RM) -f test_speed256nx2
 	-$(RM) -f test_speed256nx3
@@ -316,6 +321,7 @@ clean:
 	-$(RM) -f test_speed1024n
 	-$(RM) -f test_range1024n
 	-$(RM) -f test_ntt1024
+	-$(RM) -f test_nttrange1024
 	-$(RM) -f test_basemul1024
 	-$(RM) -f test_speed1024
 	-$(RM) -f test_range1024
