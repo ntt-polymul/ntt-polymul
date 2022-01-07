@@ -49,7 +49,7 @@ void invntt_range(int16_t *coeffs, uint32_t *bounds) {
         bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
         if(j > 0) {
           i = j/(2*l);
-          i = (3 << _bit_scan_reverse(i)) - i - 1;
+          i = (3 << (31 - _lzcnt_u32(i))) - i - 1;
           coeffs[l+k] = mulmod(coeffs[l+k],-pdata[_ZETAS+i]);
           bounds[l+k] = maxmulmod(bounds[l+k],-pdata[_ZETAS+i]);
         }
@@ -63,6 +63,8 @@ void invntt_range(int16_t *coeffs, uint32_t *bounds) {
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
+
+
         if(l == NTT_N/16 && i < l/2) {
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);

@@ -42,7 +42,7 @@ update		3,4,6,8,10,5,7,9,11
 .ifeq \off
 vbroadcasti128	(_ZETAS_INV_PINV)*2(%rdx),%ymm12
 vbroadcasti128	(_ZETAS_INV)*2(%rdx),%ymm13
-fqmulprecomp	12,13,5,x=10
+fqmulprecomp	12,13,5,x=10  // contains extra reduction
 vbroadcasti128	(_ZETAS_PINV+8)*2(%rdx),%ymm1
 vbroadcasti128	(_ZETAS+8)*2(%rdx),%ymm2
 vpshufb		%ymm15,%ymm1,%ymm1
@@ -92,7 +92,7 @@ update		8,10,3,4,6,5,7,9,11
 .ifeq \off
 vpbroadcastq	%xmm12,%ymm12
 vpbroadcastq	%xmm13,%ymm13
-fqmulprecomp	12,13,5,x=6
+fqmulprecomp	12,13,5,x=6  // contains extra reduction
 vpbroadcastq	(_ZETAS_PINV+4)*2(%rdx),%ymm1
 vpbroadcastq	(_ZETAS+4)*2(%rdx),%ymm2
 vpshufb		%ymm15,%ymm1,%ymm1
@@ -149,7 +149,7 @@ update		4,6,8,10,3,5,7,9,11
 .ifeq \off
 vpbroadcastd	%xmm12,%ymm12
 vpbroadcastd	%xmm13,%ymm13
-fqmulprecomp	12,13,5,x=3
+fqmulprecomp	12,13,5,x=3  // contains extra reduction
 vpbroadcastd	(_ZETAS_PINV+2)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS+2)*2(%rdx),%ymm2
 vpshufb		%ymm15,%ymm1,%ymm1
