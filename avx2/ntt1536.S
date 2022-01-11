@@ -20,8 +20,8 @@ vpaddw		%ymm\rh5,%ymm\rl5,%ymm\rl4
 vpsubw		%ymm\rh5,%ymm\rl5,%ymm\rh5
 .endm
 
-.macro levels0t1 off
-/* level 0 */
+.macro levels1t2 off
+/* level 1 */
 vpbroadcastd	(_ZETAS_PINV)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS)*2(%rdx),%ymm2
 vmovdqa		(384+16*\off)*2(%rsi),%ymm6
@@ -42,7 +42,7 @@ vpsubw		%ymm10,%ymm12,%ymm10
 vpaddw		%ymm11,%ymm13,%ymm9
 vpsubw		%ymm11,%ymm13,%ymm11
 
-/* level 1 */
+/* level 2 */
 fqmulprecomp	1,2,7,x=3
 vpbroadcastd	(_ZETAS_PINV+2)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS+2)*2(%rdx),%ymm2
@@ -70,8 +70,8 @@ vmovdqa		%ymm9,(1152+16*\off)*2(%rdi)
 vmovdqa		%ymm10,(1344+16*\off)*2(%rdi)
 .endm
 
-.macro levels2t7 off
-/* level 2 */
+.macro levels3t8 off
+/* level 3 */
 .if \off
 vpbroadcastd	(_ZETAS_PINV+2*(\off-1))*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS+2*(\off-1))*2(%rdx),%ymm2
@@ -131,7 +131,7 @@ fqmulprecomp1	(_TWIST96+384*\off+160),8,x=9
 fqmulprecomp1	(_TWIST96+384*\off+352),15,x=9
 .endif
 
-/* level 3 */
+/* level 4 */
 shuffle8	3,10,9,10
 shuffle8	4,11,3,11
 shuffle8	5,12,4,12
@@ -141,7 +141,7 @@ shuffle8	8,15,7,15
 
 update		8,9,10,3,11,4,12,5,13,6,14,7,15
 
-/* level 4 */
+/* level 5 */
 vpbroadcastd	(_ZETAS_PINV)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS)*2(%rdx),%ymm2
 fqmulprecomp1	(_16XMONT_PINV),3,x=12  // extra reduction
@@ -151,7 +151,7 @@ fqmulprecomp	1,2,15,x=12
 
 update		12,8,9,10,5,13,6,3,11,4,14,7,15
 
-/* level 5 */
+/* level 6 */
 fqmulprecomp	1,2,4,x=6
 vpblendd	$0x33,(_16XMONT_PINV)*2(%rdx),%ymm1,%ymm1
 vpblendd	$0x33,(_16XMONT)*2(%rdx),%ymm2,%ymm2
@@ -181,7 +181,7 @@ shuffle4	9,4,8,4
 
 update		9,13,3,12,6,14,10,11,8,4,7,5,15
 
-/* level 6 */
+/* level 7 */
 vbroadcasti128	(_TWIST12+ 0)*2(%rdx),%ymm1
 vbroadcasti128	(_TWIST12+ 8)*2(%rdx),%ymm2
 vpblendd	$0x33,(_16XMONT_PINV)*2(%rdx),%ymm1,%ymm1
@@ -241,7 +241,7 @@ shuffle1	14,15,13,15
 
 update		14,4,3,10,7,12,11,9,5,6,8,13,15
 
-/* level 7 */
+/* level 8 */
 vpbroadcastd	(_ZETAS_PINV)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS)*2(%rdx),%ymm2
 fqmulprecomp	1,2,8,x=11
@@ -269,26 +269,26 @@ vmovdqa		%ymm15,(192*\off+96+80)*2(%rdi)
 cdecl(poly_ntt):
 vmovdqa		_16XP*2(%rdx),%ymm0
 
-levels0t1	0
-levels0t1	1
-levels0t1	2
-levels0t1	3
-levels0t1	4
-levels0t1	5
-levels0t1	6
-levels0t1	7
-levels0t1	8
-levels0t1	9
-levels0t1	10
-levels0t1	11
+levels1t2	0
+levels1t2	1
+levels1t2	2
+levels1t2	3
+levels1t2	4
+levels1t2	5
+levels1t2	6
+levels1t2	7
+levels1t2	8
+levels1t2	9
+levels1t2	10
+levels1t2	11
 
-levels2t7	0
-levels2t7	1
-levels2t7	2
-levels2t7	3
-levels2t7	4
-levels2t7	5
-levels2t7	6
-levels2t7	7
+levels3t8	0
+levels3t8	1
+levels3t8	2
+levels3t8	3
+levels3t8	4
+levels3t8	5
+levels3t8	6
+levels3t8	7
 
 ret

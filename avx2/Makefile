@@ -45,10 +45,12 @@ all: \
   test_speed1024 \
   test_range1024 \
   test_ntt1536 \
+  test_nttrange1536 \
   test_basemul1536 \
   test_speed1536 \
   test_range1536 \
   test_ntt1728 \
+  test_nttrange1728 \
   test_basemul1728 \
   test_speed1728 \
   test_range1728 \
@@ -210,8 +212,14 @@ test_nttrange1024: $(SOURCES) $(HEADERS) test_ntt.c nttrange.c nttrange1024.c co
 test_ntt1536: $(SOURCES1536) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1536) -DNTRUHPS677 test_ntt.c cpucycles.c -o $@
 
+test_nttrange1536: $(SOURCES) $(HEADERS) test_ntt.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c nttrange.h
+	$(CC) $(CFLAGS) $(SOURCES) -DNTRUHPS677 -DSCALAR_NTT test_ntt.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
+
 test_ntt1728: $(SOURCES1728) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1728) -DNTRUHPS821 test_ntt.c cpucycles.c -o $@
+
+test_nttrange1728: $(SOURCES) $(HEADERS) test_ntt.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c nttrange.h
+	$(CC) $(CFLAGS) $(SOURCES) -DNTRUHPS821 -DSCALAR_NTT test_ntt.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c -o $@ -ldb
 
 test_basemul256n: $(SOURCES256N) $(HEADERS) test_basemuln.c
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_basemuln.c -o $@
@@ -245,6 +253,7 @@ test_ntruhps821mul: $(SOURCES1728) $(HEADERS) test_polymul.c ntrumul/ntruhps821_
 
 test_lightsabermul: $(SOURCES256N) $(HEADERS) test_polyvecmul.c polyvec.c sabermul/lightsabermul.o
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_polyvecmul.c polyvec.c sabermul/lightsabermul.o -o $@
+
 test_sabermul: $(SOURCES256N) $(HEADERS) test_polyvecmul.c polyvec.c sabermul/sabermul.o
 	$(CC) $(CFLAGS) $(SOURCES256N) -DSABER test_polyvecmul.c polyvec.c sabermul/sabermul.o -o $@
 
@@ -296,11 +305,11 @@ test_range1024n: test_range1024n.c consts1024n7681.c consts1024n10753.c consts10
 test_range1024: test_range1024.c nttrange.c nttrange1024.c consts10247681.c consts102410753.c nttrange.h consts1024.h
 	$(CC) $(CFLAGS) -DNTRUHPS509 test_range1024.c nttrange.c nttrange1024.c consts10247681.c consts102410753.c -o $@ -ldb
 
-test_range1536: test_range1536.c consts15367681.c consts153610753.c consts1536.h
-	$(CC) $(CFLAGS) -DNTRUHPS677 test_range1536.c consts15367681.c consts153610753.c -o $@ -ldb
+test_range1536: test_range1536.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c nttrange.h consts1536.h
+	$(CC) $(CFLAGS) -DNTRUHPS677 test_range1536.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
 
-test_range1728: test_range1728.c consts17283457.c consts17288641.c consts1728.h
-	$(CC) $(CFLAGS) -DNTRUHPS821 test_range1728.c consts17283457.c consts17288641.c -o $@ -ldb
+test_range1728: test_range1728.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c nttrange.h consts1728.h
+	$(CC) $(CFLAGS) -DNTRUHPS821 test_range1728.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c -o $@ -ldb
 
 clean:
 	-$(RM) -rf *.o sabermul/*.o *.a *.so
@@ -326,10 +335,12 @@ clean:
 	-$(RM) -f test_speed1024
 	-$(RM) -f test_range1024
 	-$(RM) -f test_ntt1536
+	-$(RM) -f test_nttrange1536
 	-$(RM) -f test_basemul1536
 	-$(RM) -f test_speed1536
 	-$(RM) -f test_range1536
 	-$(RM) -f test_ntt1728
+	-$(RM) -f test_nttrange1728
 	-$(RM) -f test_basemul1728
 	-$(RM) -f test_speed1728
 	-$(RM) -f test_range1728

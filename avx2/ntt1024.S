@@ -16,7 +16,7 @@ vpaddw		%ymm\rh3,%ymm\rl3,%ymm\rl2
 vpsubw		%ymm\rh3,%ymm\rl3,%ymm\rh3
 .endm
 
-.macro levels0t2 off
+.macro levels1t2 off
 /* level 1 */
 vpbroadcastw	(_ZETAS_PINV+1)*2(%rdx),%ymm1
 vpbroadcastw	(_ZETAS+1)*2(%rdx),%ymm2
@@ -239,14 +239,14 @@ vmovdqa		_16XP*2(%rdx),%ymm0
 vmovdqa		(_16XMONT_PINV)*2(%rdx),%ymm14
 vmovdqa		(_16XMONT)*2(%rdx),%ymm15
 
-levels0t2	0
-levels0t2	1
-levels0t2	2
-levels0t2	3
-levels0t2	4
-levels0t2	5
-levels0t2	6
-levels0t2	7
+levels1t2	0
+levels1t2	1
+levels1t2	2
+levels1t2	3
+levels1t2	4
+levels1t2	5
+levels1t2	6
+levels1t2	7
 
 levels3t8	0
 levels3t8	1

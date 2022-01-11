@@ -10,14 +10,6 @@
 #define P P1
 #define PDATA PDATA1
 
-#if NTT_N == 256
-#define F 1
-#elif NTT_N == 512
-#define F 2
-#elif NTT_N == 1024
-#define F 4
-#endif
-
 static int16_t pow_simple(int16_t a, unsigned int e) {
   int16_t r;
   if(e == 0) return 1;
@@ -69,13 +61,13 @@ static int idx(int i) {
 }
 #endif
 
-static int16_t zeta[NTT_N/F];
-static int16_t zetapow[NTT_N/F][POLY_N/F];
+static int16_t zeta[NTT_N/NTT_F];
+static int16_t zetapow[NTT_N/NTT_F][POLY_N/NTT_F];
 
 int main(void) {
   int i,j, err;
   //uint64_t t[20], overhead;
-  int16_t out[NTT_N/F];
+  int16_t out[NTT_N/NTT_F];
   uint8_t seed[POLYMUL_SYMBYTES];
   poly a;
   nttpoly b;
@@ -86,53 +78,53 @@ int main(void) {
 
   for(i=0;i<POLY_N;i++)
     a.coeffs[i] = 0;
-  a.coeffs[F] = 1;
+  a.coeffs[NTT_F] = 1;
   poly_ntt(&b,&a,PDATA);
-  for(i=0;i<NTT_N/F;i++) {
-    zeta[i] = b.coeffs[idx(F*i)] % P;
-    if((pow_simple(zeta[i],NTT_N/F) + 1) % P) {
-      fprintf(stderr, "ERROR1: %d, %d\n", F*i, zeta[i]);
+  for(i=0;i<NTT_N/NTT_F;i++) {
+    zeta[i] = b.coeffs[idx(NTT_F*i)] % P;
+    if((pow_simple(zeta[i],NTT_N/NTT_F) + 1) % P) {
+      fprintf(stderr, "ERROR1: %d, %d\n", NTT_F*i, zeta[i]);
       err = 1;
     }
     for(j=0;j<i;j++)
       if((zeta[j] - zeta[i]) % P == 0) {
-        fprintf(stderr, "ERROR2: %d, %d, %d, %d\n", F*i, F*j, zeta[i], zeta[j]);
+        fprintf(stderr, "ERROR2: %d, %d, %d, %d\n", NTT_F*i, NTT_F*j, zeta[i], zeta[j]);
         err = 1;
       }
   }
 
-  for(i=0;i<NTT_N/F;i++)
-    for(j=0;j<POLY_N/F;j++)
+  for(i=0;i<NTT_N/NTT_F;i++)
+    for(j=0;j<POLY_N/NTT_F;j++)
       zetapow[i][j] = pow_simple(zeta[i],j);
 
-  for(i=0;i<POLY_N/F;i++) {
+  for(i=0;i<POLY_N/NTT_F;i++) {
     for(j=0;j<POLY_N;j++)
       a.coeffs[j] = 0;
-    a.coeffs[F*i] = 1;
+    a.coeffs[NTT_F*i] = 1;
     poly_ntt(&b,&a,PDATA);
-    for(j=0;j<NTT_N/F;j++)
-      if((b.coeffs[idx(F*j)] - zetapow[j][i]) % P) {
-        fprintf(stderr,"ERROR3: %d, %d, %d %d\n", i, j, b.coeffs[idx(F*j)], zetapow[j][i]);
+    for(j=0;j<NTT_N/NTT_F;j++)
+      if((b.coeffs[idx(NTT_F*j)] - zetapow[j][i]) % P) {
+        fprintf(stderr,"ERROR3: %d, %d, %d %d\n", i, j, b.coeffs[idx(NTT_F*j)], zetapow[j][i]);
         err = 1;
       }
   }
 
   poly_uniform(&a,seed,0);
-  for(i=0;i<NTT_N/F;i++) {
+  for(i=0;i<NTT_N/NTT_F;i++) {
     out[i] = 0;
-    for(j=0;j<POLY_N/F;j++)
-      out[i] = (out[i] + (int32_t)a.coeffs[F*j]*zetapow[i][j]) % P;
+    for(j=0;j<POLY_N/NTT_F;j++)
+      out[i] = (out[i] + (int32_t)a.coeffs[NTT_F*j]*zetapow[i][j]) % P;
   }
   poly_ntt(&b,&a,PDATA);
-  for(i=0;i<NTT_N/F;i++)
-    if((b.coeffs[idx(F*i)] - out[i]) % P) {
-      fprintf(stderr,"ERROR4: %d, %d %d\n", i, b.coeffs[idx(F*i)], out[i]);
+  for(i=0;i<NTT_N/NTT_F;i++)
+    if((b.coeffs[idx(NTT_F*i)] - out[i]) % P) {
+      fprintf(stderr,"ERROR4: %d, %d %d\n", i, b.coeffs[idx(NTT_F*i)], out[i]);
       err = 1;
     }
 
   poly_uniform(&a,seed,1);
   poly_ntt(&b,&a,PDATA);
-  const int16_t div = pow_simple(NTT_N/F,P-2);
+  const int16_t div = pow_simple(NTT_N/NTT_F,P-2);
   for(i=0;i<NTT_N;i++)
     b.coeffs[i] = (int32_t)b.coeffs[i]*div % P;
   for(i=0;i<NTT_N;i++)

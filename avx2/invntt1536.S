@@ -346,7 +346,7 @@ vpaddw		%ymm10,%ymm8,%ymm8
 vpaddw		%ymm15,%ymm14,%ymm10
 
 .if \off >= 6
-fqmulprecomp	1,2,8,x=12
+fqmulprecomp	1,2,8,x=12  // extra reduction
 .endif
 vpbroadcastd	(_ZETAS_PINV)*2(%rdx),%ymm1
 vpbroadcastd	(_ZETAS)*2(%rdx),%ymm2

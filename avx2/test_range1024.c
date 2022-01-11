@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include "params.h"
-#include "consts256.h"
-
-void range_mul(uint32_t *bounds0, uint32_t *bounds1);
+#include "nttrange.h"
 
 int main(void) {
   int32_t i;

@@ -173,7 +173,6 @@ void range_mul(uint32_t *bounds0, uint32_t *bounds1) {
   ntt_range(coeffs,bounds3);
   basemul_range(coeffs,coeffs,bounds2,bounds3);
   invntt_range(coeffs,bounds2);
-
   crt_range(coeffs,coeffs,bounds0,bounds2);
 
   btree->close(btree,0);
