@@ -48,51 +48,27 @@ void invntt_range(int16_t *coeffs, uint32_t *bounds) {
         i = (3 << (31 - _lzcnt_u32(i))) - i - 1;
         zeta = -pdata[_ZETAS+i];
       }
+      else
+        zeta = pdata[_16XMONT];
       for(k=j;k<j+l;k++) {
         t = coeffs[l+k];
         coeffs[l+k] = coeffs[k] - t;
         coeffs[k] = coeffs[k] + t;
         bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
-        if(j > 0) {
+        if( (j > 0 || l <= 8*NTT_F)
+            || (l == 64*NTT_F && k >= 32 && k < 96)
+            || (l == 128*NTT_F && k >= 32) )
+        {
           coeffs[l+k] = mulmod(coeffs[l+k],zeta);
           bounds[l+k] = maxmulmod(bounds[l+k],zeta);
         }
-        else if(l <= 8*NTT_F) {
-          coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-        }
 
-        i = k - j;
-        if(l == 2*NTT_F || l == 8*NTT_F) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-        }
-        if(l == 32*NTT_F && i < 32) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-        }
-        if(l == 64*NTT_F && j == 0 && i >= 32 && i < 96) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-          coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-        }
-        if(l == 64*NTT_F && j == 0 && i >= 96) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-        }
-        if(l == 64*NTT_F && j > 0 && i >= 32 && i < 64) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-        }
-
-        if(l == 128*NTT_F && j == 0 && i >= 32) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-          coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-        }
-        if(l == 128*NTT_F && j > 0 && (i < 32 || (i >= 64 && i < 128))) {
+        if( (l == 2*NTT_F || l == 8*NTT_F)
+            || (l == 32*NTT_F && k < j+32)
+            || (l == 64*NTT_F && k >= j+32 && (j == 0 || k < j+64))
+            || (l == 128*NTT_F && j == 0 && k >= 32)
+            || (l == 128*NTT_F && j > 0 && (k < j+32 || (k >= j+64 && k < j+128))) )
+        {
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
@@ -154,6 +130,6 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
     u = maxmulmod(bounds1[i] + (P0-1)/2,CRT_U);  // extra reduction
     u *= P0;
     bounds0[i] = bounds0[i] + u;
-    assert(bounds0[i] < P0*P1 - KEM_Q*KEM_N);
+    assert(bounds0[i] < P0*P1 - KEM_Q/2*KEM_N);
   }
 }

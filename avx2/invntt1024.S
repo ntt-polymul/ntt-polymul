@@ -336,16 +336,14 @@ vpbroadcastw	(_ZETAS+1)*2(%rdx),%ymm2
 fqmulprecomp	1,2,8,x=9,neg=1
 fqmulprecomp	1,2,11,x=9,neg=1
 
-.if \off
+.if \off >= 2
 fqmulprecomp	12,13,4,x=9  // extra reduction
 fqmulprecomp	12,13,10,x=9  // extra reduction
 .endif
 fqmulprecomp	12,13,7,x=9  // extra reduction
 fqmulprecomp	12,13,3,x=9  // extra reduction
-.if \off == 0 || \off == 2 || \off == 3
-fqmulprecomp	12,13,3,x=9  // extra reduction
+.if \off < 2 || \off >= 4
 fqmulprecomp	12,13,5,x=9  // extra reduction
-fqmulprecomp	12,13,6,x=9  // extra reduction
 .endif
 
 /* level 8 */

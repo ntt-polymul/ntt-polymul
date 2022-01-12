@@ -360,7 +360,7 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
     u *= P0;
     coeffs0[i] = coeffs0[i] + t;
     bounds0[i] = bounds0[i] + u;
-    assert(bounds0[i] < P0*P1 - KEM_Q*KEM_N);
+    assert(bounds0[i] < P0*P1 - KEM_Q/2*KEM_N);
   }
 }
 

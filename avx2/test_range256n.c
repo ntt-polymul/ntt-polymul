@@ -7,7 +7,7 @@ int main(void) {
   uint32_t bounds0[NTT_N], bounds1[NTT_N];
 
   for(i=0;i<NTT_N;i++) {
-    bounds0[i] = 4096;
+    bounds0[i] = KEM_Q/2;
     bounds1[i] = 5;
   }
 

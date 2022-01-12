@@ -176,7 +176,7 @@ static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
       const int32_t lut[4] = {-1,0,96,32};
       zeta = -pdata[_ZETAS+16+lut[i]];
       for(k=j;k<j+l;k++) {
-        if(l == 16*NTT_F && k-j < 4) {  // extra reduction
+        if(l == 16*NTT_F && k < j+4) {  // extra reduction
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
@@ -233,9 +233,8 @@ static void invntt5t7(int16_t *coeffs, uint32_t *bounds) {
 
         bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
         bounds[l+k] = maxmulmod(bounds[l+k],zeta);
-      }
-      if(l == 64*NTT_F) {  // extra reduction
-        for(k=j;k<j+l/2;k++) {
+
+        if(l == 64*NTT_F && k < j+32) {  // extra reduction
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
@@ -284,6 +283,6 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
     u *= P0;
     coeffs0[i] = coeffs0[i] + t;
     bounds0[i] = bounds0[i] + u;
-    assert(bounds0[i] < P0*P1-5*4096*256*4);
+    assert(bounds0[i] < P0*P1-5*KEM_Q/2*KEM_N*KEM_K);
   }
 }

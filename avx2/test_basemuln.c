@@ -44,5 +44,5 @@ int main(void) {
       err = 1;
     }
   if(!err) printf("ALL GOOD.\n");
-  return 0;
+  return err;
 }

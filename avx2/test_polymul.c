@@ -57,6 +57,5 @@ int main(void) {
     }
 
   if(!err) printf("ALL GOOD.\n");
-
-  return 0;
+  return err;
 }

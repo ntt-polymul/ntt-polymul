@@ -144,7 +144,7 @@ int main(void) {
     }
 
   if(!err) printf("ALL GOOD.\n");
-  return 0;
+  return err;
 
 /*
   for(i=0;i<20;i++) {

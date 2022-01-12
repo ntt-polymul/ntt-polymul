@@ -195,7 +195,7 @@ test_ntt256n: $(SOURCES256N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES256N) -DLIGHTSABER test_nttn.c cpucycles.c -o $@
 
 test_nttrange256n: $(SOURCES) $(HEADERS) test_nttn.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c nttrange.h
-	$(CC) $(CFLAGS) $(SOURCES) -DLIGHTSABER -DSCALAR_NTT test_nttn.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c -o $@ -ldb
+	$(CC) $(CFLAGS) $(SOURCES) -DFIRESABER -DSCALAR_NTT test_nttn.c nttrange.c nttrange256n.c consts256n7681.c consts256n10753.c -o $@ -ldb
 
 test_ntt512n: $(SOURCES512N) $(HEADERS) test_nttn.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES512N) -DLAC128 test_nttn.c cpucycles.c -o $@
@@ -213,7 +213,7 @@ test_ntt1536: $(SOURCES1536) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1536) -DNTRUHPS677 test_ntt.c cpucycles.c -o $@
 
 test_nttrange1536: $(SOURCES) $(HEADERS) test_ntt.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c nttrange.h
-	$(CC) $(CFLAGS) $(SOURCES) -DNTRUHPS677 -DSCALAR_NTT test_ntt.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
+	$(CC) $(CFLAGS) $(SOURCES) -DNTRUHRSS701 -DSCALAR_NTT test_ntt.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
 
 test_ntt1728: $(SOURCES1728) $(HEADERS) test_ntt.c cpucycles.c cpucycles.h
 	$(CC) $(CFLAGS) $(SOURCES1728) -DNTRUHPS821 test_ntt.c cpucycles.c -o $@
@@ -306,7 +306,7 @@ test_range1024: test_range1024.c nttrange.c nttrange1024.c consts10247681.c cons
 	$(CC) $(CFLAGS) -DNTRUHPS509 test_range1024.c nttrange.c nttrange1024.c consts10247681.c consts102410753.c -o $@ -ldb
 
 test_range1536: test_range1536.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c nttrange.h consts1536.h
-	$(CC) $(CFLAGS) -DNTRUHPS677 test_range1536.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
+	$(CC) $(CFLAGS) -DNTRUHRSS701 test_range1536.c nttrange.c nttrange1536.c consts15367681.c consts153610753.c -o $@ -ldb
 
 test_range1728: test_range1728.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c nttrange.h consts1728.h
 	$(CC) $(CFLAGS) -DNTRUHPS821 test_range1728.c nttrange.c nttrange1728.c consts17283457.c consts17288641.c -o $@ -ldb
