@@ -3,7 +3,7 @@
 #include "params.h"
 #include "cbd.h"
 
-void cbd(int16_t * restrict r, const uint8_t * restrict buf)
+void cbd(int16_t r[KEM_N], const uint8_t buf[KEM_N])
 {
   unsigned int i;
   __m256i f0, f1;

@@ -53,22 +53,15 @@ static void ntt4t6(int16_t *coeffs, uint32_t *bounds) {
   for(l=NTT_N/16;l>=NTT_N/64;l/=2) {
     for(j=0;j<NTT_N;j+=l) {
       i = j%(NTT_N/16) / l;
-      zeta = pdata[_ZETAS+2*(i-1)];
+      if(i > 0) zeta = pdata[_ZETAS+2*(i-1)];
+      else zeta = pdata[_16XMONT];
       for(k=j;k<j+l/2;k++) {
-        if(l == NTT_N/32 && i == 0 && k-j < 8) {
-          coeffs[l/2+k] = mulmod(coeffs[l/2+k],pdata[_16XMONT]);
-          bounds[l/2+k] = maxmulmod(bounds[l/2+k],pdata[_16XMONT]);
-        }
-        if(l == NTT_N/64 && i <= 1 && k-j >= 8) {
+        if(l == NTT_N/64 && i <= 1 && k >= j+8) {
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
-        if(l == NTT_N/64 && i == 0) {
-          coeffs[l/2+k] = mulmod(coeffs[l/2+k],pdata[_16XMONT]);
-          bounds[l/2+k] = maxmulmod(bounds[l/2+k],pdata[_16XMONT]);
-        }
 
-        if(i > 0) {
+        if(i > 0 || (l == NTT_N/32 && k < j+8) || l == NTT_N/64) {
           coeffs[l/2+k] = mulmod(coeffs[l/2+k],zeta);
           bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
         }
@@ -194,13 +187,6 @@ static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
       i = j%(32*NTT_F) / (2*l);
       zeta = -pdata[_ZETAS+lut[i]];
       for(k=j;k<j+l;k++) {
-        if( (l == 8*NTT_F && i == 0 && k-j < 12)
-            || (l == 16*NTT_F && k-j < 16) )
-        {
-          coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-        }
-
         t = coeffs[l+k];
         coeffs[l+k] = coeffs[k] - t;
         coeffs[k] = coeffs[k] + t;
@@ -208,6 +194,13 @@ static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
         if(i > 0) {
           coeffs[l+k] = mulmod(coeffs[l+k],zeta);
           bounds[l+k] = maxmulmod(bounds[l+k],zeta);
+        }
+
+        if( (l == 4*NTT_F && i == 1)
+            || (l == 8*NTT_F && i == 1 && k < j+16) )
+        {
+          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
+          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
       }
     }
@@ -244,30 +237,23 @@ static void invntt5t8(int16_t *coeffs, uint32_t *bounds) {
   for(l=32*NTT_F;l<=256*NTT_F;l*=2) {
     for(j=0;j<NTT_N;j+=2*l) {
       const int32_t lut[8] = {-1, 0, 4, 2, 12, 10, 8, 6};
-      zeta = -pdata[_ZETAS+lut[j/(2*l)]];
+      if(j > 0) zeta = -pdata[_ZETAS+lut[j/(2*l)]];
+      else zeta = pdata[_16XMONT];
       for(k=j;k<j+l;k++) {
-        if(l == 128*NTT_F) {
-          if(j == 0 || (k-j < 96)) {
-            coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-            bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-          }
-          if(k-j < 96) {
-            coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-            bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-          }
-        }
-        if(l == 128*NTT_F && k >= 96 && k < 192) {
-          coeffs[l+k] = mulmod(coeffs[l+k],pdata[_16XMONT]);
-          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
-        }
-
         t = coeffs[l+k];
         coeffs[l+k] = coeffs[k] - t;
         coeffs[k] = coeffs[k] + t;
         bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
-        if(j > 0) {
+        if(j > 0 || l == 64*NTT_F) {
           coeffs[l+k] = mulmod(coeffs[l+k],zeta);
           bounds[l+k] = maxmulmod(bounds[l+k],zeta);
+        }
+
+        if( (l == 64*NTT_F && (j == 0 || k < j+96))
+            || (l == 128*NTT_F && k >= 768+96 && k < 768+192) )
+        {
+          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
+          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
         }
       }
     }
