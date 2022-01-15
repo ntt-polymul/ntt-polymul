@@ -130,6 +130,6 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
     u = maxmulmod(bounds1[i] + (P0-1)/2,CRT_U);  // extra reduction
     u *= P0;
     bounds0[i] = bounds0[i] + u;
-    assert(bounds0[i] < P0*P1 - KEM_Q/2*KEM_N);
+    assert(bounds0[i] < P0*P1 - (KEM_Q-1)*KEM_N);
   }
 }

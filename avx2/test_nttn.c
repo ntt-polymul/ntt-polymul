@@ -25,7 +25,9 @@ static int16_t pow_simple(int16_t a, unsigned int e) {
   return r;
 }
 
-#if NTT_N == 256
+#if SCALAR_NTT
+static int idx(int i) { return i; }
+#elif NTT_N == 256
 static int idx(int i) {
   int r;
   r  = i/128*128;

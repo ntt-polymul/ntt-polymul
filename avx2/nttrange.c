@@ -103,9 +103,9 @@ void print_bounds(uint32_t *bounds, char *s) {
 
   printf("%s:\n", s);
   for(i=0;i<NTT_N/16;i++) {
-    //printf(" ");
+    printf("%3d: ",i);
     for(j=0;j<16;j++)
-      printf(" %5d,",bounds[16*i+j]);
+      printf("%5d,",bounds[16*i+j]);
     printf("\n");
   }
 
@@ -173,6 +173,7 @@ void range_mul(uint32_t *bounds0, uint32_t *bounds1) {
   ntt_range(coeffs,bounds3);
   basemul_range(coeffs,coeffs,bounds2,bounds3);
   invntt_range(coeffs,bounds2);
+
   crt_range(coeffs,coeffs,bounds0,bounds2);
 
   btree->close(btree,0);

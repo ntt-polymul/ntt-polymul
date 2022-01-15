@@ -1,26 +1,43 @@
 #include <stdint.h>
 #include <assert.h>
 #include "params.h"
-#include "consts1536.h"
+#include "consts1728.h"
 #include "nttrange.h"
 
-static void ntt0t3(int16_t *coeffs, uint32_t *bounds) {
+static void ntt0t1(int16_t *coeffs, uint32_t *bounds) {
   int32_t j,k,l;
-  int16_t zeta,t;
+  int16_t zeta,zetasq;
+  const int16_t omega = pdata[_ZETAS3];
+  int32_t t,u,v,w;
   char s[] = "Level 0";
 
-  for(l=NTT_N;l>=NTT_N/8;l/=2) {
+  for(l=NTT_N;l>=NTT_N/3;l/=3) {
     for(j=0;j<NTT_N;j+=l) {
-      zeta = pdata[_ZETAS+2*(j/l-1)];
-      for(k=j;k<j+l/2;k++) {
+      zeta = pdata[_ZETAS3+2*j/l];
+      zetasq = pdata[_ZETAS3+2*(j/l+1)];
+      for(k=j;k<j+l/3;k++) {
         if(j > 0) {
-          coeffs[l/2+k] = mulmod(coeffs[l/2+k],zeta);
-          bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
+          coeffs[l/3+k] = mulmod(coeffs[l/3+k],zeta);
+          bounds[l/3+k] = maxmulmod(bounds[l/3+k],zeta);
+          coeffs[2*l/3+k] = mulmod(coeffs[2*l/3+k],zetasq);
+          bounds[2*l/3+k] = maxmulmod(bounds[2*l/3+k],zetasq);
         }
-        t = coeffs[l/2+k];
-        coeffs[l/2+k] = coeffs[k] - t;
-        coeffs[k] = coeffs[k] + t;
-        bounds[k] = bounds[l/2+k] = bounds[k] + bounds[l/2+k];
+
+        t = mulmod(coeffs[l/3+k]-coeffs[2*l/3+k],omega);
+        u = coeffs[k] + coeffs[l/3+k] + coeffs[2*l/3+k];
+        v = coeffs[k] + t - coeffs[2*l/3+k];
+        w = coeffs[k] - coeffs[l/3+k] - t;
+        coeffs[k] = u;
+        coeffs[l/3+k] = v;
+        coeffs[2*l/3+k] = w;
+
+        t = maxmulmod(bounds[l/3+k]+bounds[2*l/3+k],omega);
+        u = bounds[k] + bounds[l/3+k] + bounds[2*l/3+k];
+        v = bounds[k] + t + bounds[2*l/3+k];
+        w = bounds[k] + bounds[l/3+k] + t;
+        bounds[k] = u;
+        bounds[l/3+k] = v;
+        bounds[2*l/3+k] = w;
       }
     }
     print_bounds(bounds,s);
@@ -28,40 +45,36 @@ static void ntt0t3(int16_t *coeffs, uint32_t *bounds) {
   }
 }
 
-static void twist96(int16_t *coeffs, uint32_t *bounds) {
+static void twist192(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,idx;
   int16_t zeta;
 
   for(i=0;i<NTT_N;i++) {
     j  = i;
-    idx  = j/16*32;
+    idx  = j/192*32;
+    j %= 192;
+    idx += j/16*288;
     j %= 16;
     idx += j;
-    if(idx < 192) zeta = pdata[_16XMONT];
-    else zeta = pdata[_TWIST96+16+idx];
+    zeta = pdata[_TWIST192+16+idx];
     coeffs[i] = mulmod(coeffs[i],zeta);
     bounds[i] = maxmulmod(bounds[i],zeta);
   }
-  print_bounds(bounds,"Twist 96");
+  print_bounds(bounds,"Twist 192");
 }
 
-static void ntt4t6(int16_t *coeffs, uint32_t *bounds) {
+static void ntt2t4(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,k,l;
   int16_t zeta,t;
-  char s[] = "Level 4";
+  char s[] = "Level 2";
 
-  for(l=NTT_N/16;l>=NTT_N/64;l/=2) {
+  for(l=NTT_N/9;l>=NTT_N/36;l/=2) {
     for(j=0;j<NTT_N;j+=l) {
-      i = j%(NTT_N/16) / l;
+      i = j%(NTT_N/9) / l;
       if(i > 0) zeta = pdata[_ZETAS+2*(i-1)];
       else zeta = pdata[_16XMONT];
       for(k=j;k<j+l/2;k++) {
-        if(l == NTT_N/64 && i <= 1 && k >= j+8) {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
-        }
-
-        if(i > 0 || (l == NTT_N/32 && k < j+8) || l == NTT_N/64) {
+        if(i > 0 || l == NTT_N/36) {
           coeffs[l/2+k] = mulmod(coeffs[l/2+k],zeta);
           bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
         }
@@ -76,38 +89,36 @@ static void ntt4t6(int16_t *coeffs, uint32_t *bounds) {
   }
 }
 
-static void twist12(int16_t *coeffs, uint32_t *bounds) {
+static void twist24(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,idx;
   int16_t zeta;
 
   for(i=0;i<NTT_N;i++) {
-    j  = i % 96;
-    idx  = j/48*96;
-    j %= 48;
-    idx += j/24*4;
+    j  = i % 192;
+    idx  = j/24*2;
     j %= 24;
-    idx += j/4*16;
-    j %= 4;
+    idx += j/2*32;
+    j %= 2;
     idx += j;
-    if(idx < 48 && idx % 8 < 4) zeta = pdata[_16XMONT];
-    else zeta = pdata[_TWIST12+8+idx];
+    zeta = pdata[_TWIST24+16+idx];
     coeffs[i] = mulmod(coeffs[i],zeta);
     bounds[i] = maxmulmod(bounds[i],zeta);
   }
-  print_bounds(bounds,"Twist 12");
+  print_bounds(bounds,"Twist 24");
 }
 
-static void ntt7t8(int16_t *coeffs, uint32_t *bounds) {
+static void ntt5t7(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,k,l;
   int16_t zeta,t;
-  char s[] = "Level 7";
+  char s[] = "Level 5";
 
-  for(l=NTT_N/128;l>NTT_F;l/=2) {
+  for(l=NTT_N/72;l>=NTT_N/288;l/=2) {
     for(j=0;j<NTT_N;j+=l) {
-      i = j%(NTT_N/128) / l;
-      zeta = pdata[_ZETAS+2*(i-1)];
+      i = j%(NTT_N/72) / l;
+      if(i > 0) zeta = pdata[_ZETAS+2*(i-1)];
+      else zeta = pdata[_16XMONT];
       for(k=j;k<j+l/2;k++) {
-        if(i > 0) {
+        if(i > 0 || l == NTT_N/288) {
           coeffs[l/2+k] = mulmod(coeffs[l/2+k],zeta);
           bounds[l/2+k] = maxmulmod(bounds[l/2+k],zeta);
         }
@@ -123,22 +134,22 @@ static void ntt7t8(int16_t *coeffs, uint32_t *bounds) {
 }
 
 void ntt_range(int16_t *coeffs, uint32_t *bounds) {
-  ntt0t3(coeffs,bounds);
-  twist96(coeffs,bounds);
-  ntt4t6(coeffs,bounds);
-  twist12(coeffs,bounds);
-  ntt7t8(coeffs,bounds);
+  ntt0t1(coeffs,bounds);
+  twist192(coeffs,bounds);
+  ntt2t4(coeffs,bounds);
+  twist24(coeffs,bounds);
+  ntt5t7(coeffs,bounds);
 }
 
-static void invntt0t1(int16_t *coeffs, uint32_t *bounds) {
+static void invntt0t2(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,k,l;
   int16_t zeta,t;
   char s[] = "Inv Level 0";
 
-  for(l=NTT_F;l<=2*NTT_F;l*=2) {
+  for(l=NTT_F;l<=4*NTT_F;l*=2) {
     for(j=0;j<NTT_N;j+=2*l) {
-      const int32_t lut[4] = {-1, 0, 4, 2};
-      i = j%(4*NTT_F) / (2*l);
+      const int32_t lut[4] = {_16XMONT-_ZETAS, 0, 4, 2};
+      i = j%(8*NTT_F) / (2*l);
       zeta = -pdata[_ZETAS+lut[i]];
       for(k=j;k<j+l;k++) {
         t = coeffs[l+k];
@@ -149,6 +160,12 @@ static void invntt0t1(int16_t *coeffs, uint32_t *bounds) {
           coeffs[l+k] = mulmod(coeffs[l+k],zeta);
           bounds[l+k] = maxmulmod(bounds[l+k],zeta);
         }
+        if( (l == NTT_F && i == 2 && k >= j+2*l/3)
+            || (l == 2*NTT_F && i == 1 && k < j+2*l/3) )
+        {
+          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
+          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
+        }
       }
     }
     print_bounds(bounds,s);
@@ -156,35 +173,33 @@ static void invntt0t1(int16_t *coeffs, uint32_t *bounds) {
   }
 }
 
-static void invtwist12(int16_t *coeffs, uint32_t *bounds) {
+static void invtwist24(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,idx;
   int16_t zeta;
 
   for(i=0;i<NTT_N;i++) {
-    j  = i % 96;
-    const int32_t lut[] = {-48,0,52,4,148,100,144,96};
-    idx  = lut[j/12];
-    j %= 12;
-    idx += j/4*16;
-    j %= 4;
+    j  = i % 192;
+    idx  = j/24*2;
+    j %= 24;
+    idx += j/2*32;
+    j %= 2;
     idx += j;
-    if(idx < 0) zeta = pdata[_16XMONT];
-    else zeta = pdata[_TWIST12+8+idx];
+    zeta = pdata[_TWIST24INV+16+idx];
     coeffs[i] = mulmod(coeffs[i],zeta);
     bounds[i] = maxmulmod(bounds[i],zeta);
   }
-  print_bounds(bounds,"Inv Twist 12");
+  print_bounds(bounds,"Inv Twist 24");
 }
 
-static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
+static void invntt3t5(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,k,l;
   int16_t zeta,t;
-  char s[] = "Inv Level 2";
+  char s[] = "Inv Level 3";
 
-  for(l=4*NTT_F;l<=16*NTT_F;l*=2) {
+  for(l=8*NTT_F;l<=32*NTT_F;l*=2) {
     for(j=0;j<NTT_N;j+=2*l) {
-      const int32_t lut[4] = {-1, 0, 4, 2};
-      i = j%(32*NTT_F) / (2*l);
+      const int32_t lut[4] = {_16XMONT-_ZETAS, 0, 4, 2};
+      i = j%(64*NTT_F) / (2*l);
       zeta = -pdata[_ZETAS+lut[i]];
       for(k=j;k<j+l;k++) {
         t = coeffs[l+k];
@@ -195,9 +210,8 @@ static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
           coeffs[l+k] = mulmod(coeffs[l+k],zeta);
           bounds[l+k] = maxmulmod(bounds[l+k],zeta);
         }
-
-        if( (l == 4*NTT_F && i == 1)
-            || (l == 8*NTT_F && i == 1 && k < j+16) )
+        if( (l == 8*NTT_F && i == 2 && k >= j+2*l/3)
+            || (l == 16*NTT_F && i == 1 && k < j+2*l/3) )
         {
           coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
           bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
@@ -209,51 +223,65 @@ static void invntt2t4(int16_t *coeffs, uint32_t *bounds) {
   }
 }
 
-static void invtwist96(int16_t *coeffs, uint32_t *bounds) {
+static void invtwist192(int16_t *coeffs, uint32_t *bounds) {
   int32_t i,j,idx;
   int16_t zeta;
 
   for(i=0;i<NTT_N;i++) {
-    const int32_t lut[16] = {-1,0,3,2,7,6,5,4,15,14,13,12,11,10,9,8};
+    const int32_t lut[9] = {0,2,1,8,7,6,5,4,3};
     j  = i;
-    idx  = lut[j/96]*192;
-    j %= 96;
-    idx += j/16*32;
+    idx  = lut[j/192]*32;
+    j %= 192;
+    idx += j/16*288;
     j %= 16;
     idx += j;
-    if(idx < 0) zeta = pdata[_16XMONT];
-    else zeta = pdata[_TWIST96+16+idx];
+    zeta = pdata[_TWIST192+16+idx];
     coeffs[i] = mulmod(coeffs[i],zeta);
     bounds[i] = maxmulmod(bounds[i],zeta);
   }
-  print_bounds(bounds,"Inv Twist 96");
+  print_bounds(bounds,"Inv Twist 192");
 }
 
-static void invntt5t8(int16_t *coeffs, uint32_t *bounds) {
+static void invntt6t7(int16_t *coeffs, uint32_t *bounds) {
   int32_t j,k,l;
-  int16_t zeta,t;
-  char s[] = "Inv Level 5";
+  int16_t zeta,zetasq;
+  const int16_t omega = pdata[_ZETAS3];
+  int32_t t,u,v,w;
+  char s[] = "Inv Level 6";
 
-  for(l=32*NTT_F;l<=256*NTT_F;l*=2) {
-    for(j=0;j<NTT_N;j+=2*l) {
-      const int32_t lut[8] = {-1, 0, 4, 2, 12, 10, 8, 6};
-      if(j > 0) zeta = -pdata[_ZETAS+lut[j/(2*l)]];
-      else zeta = pdata[_16XMONT];
+  for(l=64*NTT_F;l<NTT_N;l*=3) {
+    for(j=0;j<NTT_N;j+=3*l) {
+      zeta = pdata[_ZETAS3_INV+2*j/(3*l)];
+      zetasq = pdata[_ZETAS3_INV+2*(j/(3*l)+1)];
       for(k=j;k<j+l;k++) {
-        t = coeffs[l+k];
-        coeffs[l+k] = coeffs[k] - t;
-        coeffs[k] = coeffs[k] + t;
-        bounds[k] = bounds[l+k] = bounds[k] + bounds[l+k];
-        if(j > 0 || l == 64*NTT_F) {
-          coeffs[l+k] = mulmod(coeffs[l+k],zeta);
-          bounds[l+k] = maxmulmod(bounds[l+k],zeta);
+        if(l == 192*NTT_F)
+          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
+        if(l == 192*NTT_F && k < l/3) {
+          bounds[l+k] = maxmulmod(bounds[l+k],pdata[_16XMONT]);
+          bounds[2*l+k] = maxmulmod(bounds[2*l+k],pdata[_16XMONT]);
         }
 
-        if( (l == 64*NTT_F && (j == 0 || k < j+96))
-            || (l == 128*NTT_F && k >= 768+96 && k < 768+192) )
-        {
-          coeffs[k] = mulmod(coeffs[k],pdata[_16XMONT]);
-          bounds[k] = maxmulmod(bounds[k],pdata[_16XMONT]);
+        t = mulmod(coeffs[l+k]-coeffs[2*l+k],omega);
+        u = coeffs[k] + coeffs[l+k] + coeffs[2*l+k];
+        v = coeffs[k] + t - coeffs[2*l+k];
+        w = coeffs[k] - coeffs[l+k] - t;
+        coeffs[k] = u;
+        coeffs[l+k] = w;
+        coeffs[2*l+k] = v;
+
+        t = maxmulmod(bounds[l+k]+bounds[2*l+k],omega);
+        u = bounds[k] + bounds[l+k] + bounds[2*l+k];
+        v = bounds[k] + t + bounds[2*l+k];
+        w = bounds[k] + bounds[l+k] + t;
+        bounds[k] = u;
+        bounds[l+k] = w;
+        bounds[2*l+k] = v;
+
+        if(j > 0) {
+          coeffs[l+k] = mulmod(coeffs[l+k],zeta);
+          coeffs[2*l+k] = mulmod(coeffs[2*l+k],zetasq);
+          bounds[l+k] = maxmulmod(bounds[l+k],zeta);
+          bounds[2*l+k] = maxmulmod(bounds[2*l+k],zetasq);
         }
       }
     }
@@ -263,11 +291,11 @@ static void invntt5t8(int16_t *coeffs, uint32_t *bounds) {
 }
 
 void invntt_range(int16_t *coeffs, uint32_t *bounds) {
-  invntt0t1(coeffs,bounds);
-  invtwist12(coeffs,bounds);
-  invntt2t4(coeffs,bounds);
-  invtwist96(coeffs,bounds);
-  invntt5t8(coeffs,bounds);
+  invntt0t2(coeffs,bounds);
+  invtwist24(coeffs,bounds);
+  invntt3t5(coeffs,bounds);
+  invtwist192(coeffs,bounds);
+  invntt6t7(coeffs,bounds);
 }
 
 void basemul_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, const uint32_t *bounds1) {
@@ -279,7 +307,7 @@ void basemul_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, 
   for(i=0;i<NTT_N/3;i++) {
     zeta = pdata[_ZETAS+2*(i/2-1)];
     zeta = (i%2==0) ? zeta : -zeta;
-    coeffs0[3*i+0] = maxmulmod(coeffs0[3*i+0],pdata[_16XMONT]);  // FIXME
+    coeffs0[3*i+0] = maxmulmod(coeffs0[3*i+0],pdata[_16XMONT]);
     coeffs0[3*i+1] = maxmulmod(coeffs0[3*i+1],pdata[_16XMONT]);
     coeffs0[3*i+2] = maxmulmod(coeffs0[3*i+2],pdata[_16XMONT]);
     t[0]  = mulmod(coeffs0[3*i+0],coeffs1[3*i+0]);
@@ -350,9 +378,9 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
   uint32_t u;
 
   for(i=0;i<2*KEM_N;i++) {
-    pdata = PDATA0;
-    coeffs0[i] = mulmod(coeffs0[i],pdata[_16XMONT]);
-    bounds0[i] = maxmulmod(bounds0[i],pdata[_16XMONT]);
+    //pdata = PDATA0;
+    //coeffs0[i] = mulmod(coeffs0[i],pdata[_16XMONT]);
+    //bounds0[i] = maxmulmod(bounds0[i],pdata[_16XMONT]);
     pdata = PDATA1;
     t = mulmod(coeffs1[i] - coeffs0[i],CRT_U);
     u = maxmulmod(bounds1[i] + bounds0[i],CRT_U);
@@ -363,4 +391,3 @@ void crt_range(int16_t *coeffs0, const int16_t *coeffs1, uint32_t *bounds0, cons
     assert(bounds0[i] < P0*P1 - KEM_Q/2*KEM_N);
   }
 }
-
